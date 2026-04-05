@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Environment — NEVER commit these
+.env
+.env.local
+.env.production
+
+# Virtual environment — NEVER commit this (951 dirs, 8926 files!)
+venv/
+env/
+.venv/
+
+# Database — contains real user data, NEVER commit
+users.db
+*.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# Vercel (keep vercel.json but ignore cache)
+.vercel/
