@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dehesa Studio — Tools that make sense of things</title>
+    <meta name="description" content="Dehesa Studio builds AI-powered tools that give people back their time. By Andrea Demaria, Gran Canaria.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --soil:   #0d0d0b;
+            --bark:   #1a1a14;
+            --moss:   #2a2a1e;
+            --lichen: #3d3d2e;
+            --leaf:   #7a8c4e;
+            --canopy: #a8bc6e;
+            --cream:  #f0ead8;
+            --muted:  #8a8a72;
+            --border: rgba(122,140,78,0.2);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'DM Mono', monospace;
+            background: var(--soil);
+            color: var(--cream);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        /* grain */
+        body::before {
+            content:'';
+            position:fixed; inset:0;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events:none; z-index:1000; opacity:0.35;
+        }
+
+        /* NAV */
+        nav {
+            position:fixed; top:0; left:0; right:0; z-index:100;
+            padding:1.5rem 3rem;
+            display:flex; justify-content:space-between; align-items:center;
+            background:linear-gradient(to bottom,rgba(13,13,11,0.95),transparent);
+            backdrop-filter:blur(8px);
+        }
+        .nav-logo {
+            font-family:'Cormorant Garamond',serif;
+            font-size:1.4rem; font-weight:300; letter-spacing:0.15em;
+            color:var(--canopy); text-decoration:none;
+        }
+        .nav-logo span { color:var(--muted); font-style:italic; }
+        .nav-links { display:flex; gap:2.5rem; list-style:none; }
+        .nav-links a {
+            color:var(--muted); text-decoration:none;
+            font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase;
+            transition:color 0.3s;
+        }
+        .nav-links a:hover { color:var(--canopy); }
+
+        /* HERO */
+        .hero {
+            min-height:100vh;
+            display:flex; flex-direction:column; justify-content:center;
+            padding:8rem 3rem 4rem;
+            position:relative; overflow:hidden;
+        }
+        .hero::after {
+            content:'';
+            position:absolute; top:50%; right:-20%; transform:translateY(-50%);
+            width:70vw; height:70vw; border-radius:50%;
+            background:radial-gradient(circle,rgba(122,140,78,0.04) 0%,rgba(122,140,78,0.02) 40%,transparent 70%);
+            border:1px solid rgba(122,140,78,0.06);
+            pointer-events:none;
+        }
+        .hero-eyebrow {
+            font-size:0.7rem; letter-spacing:0.3em; text-transform:uppercase;
+            color:var(--leaf); margin-bottom:2rem;
+            opacity:0; animation:fadeUp 0.8s 0.2s forwards;
+        }
+        .hero-title {
+            font-family:'Cormorant Garamond',serif;
+            font-size:clamp(3.5rem,9vw,8rem);
+            font-weight:300; line-height:0.95; letter-spacing:-0.02em;
+            margin-bottom:2rem;
+            opacity:0; animation:fadeUp 0.8s 0.4s forwards;
+        }
+        .hero-title em { font-style:italic; color:var(--canopy); }
+        .hero-title .accent {
+            display:block; color:var(--muted);
+            font-size:0.45em; font-weight:300; letter-spacing:0.05em; margin-top:0.5rem;
+        }
+        .hero-tagline {
+            font-size:0.9rem; color:var(--muted); max-width:38ch; line-height:1.8;
+            margin-bottom:3.5rem;
+            opacity:0; animation:fadeUp 0.8s 0.6s forwards;
+        }
+        .hero-cta {
+            display:flex; gap:1rem; flex-wrap:wrap;
+            opacity:0; animation:fadeUp 0.8s 0.8s forwards;
+        }
+        .btn-primary {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            background:var(--leaf); color:var(--soil);
+            text-decoration:none; padding:0.9rem 2rem;
+            font-family:'DM Mono',monospace; font-size:0.8rem;
+            letter-spacing:0.08em; text-transform:uppercase;
+            border:none; cursor:pointer; transition:all 0.3s;
+            clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+        }
+        .btn-primary:hover { background:var(--canopy); transform:translateY(-2px); }
+        .btn-secondary {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            background:transparent; color:var(--muted);
+            text-decoration:none; padding:0.9rem 2rem;
+            font-family:'DM Mono',monospace; font-size:0.8rem;
+            letter-spacing:0.08em; text-transform:uppercase;
+            border:1px solid var(--lichen); cursor:pointer; transition:all 0.3s;
+        }
+        .btn-secondary:hover { border-color:var(--leaf); color:var(--canopy); }
+
+        .scroll-hint {
+            position:absolute; bottom:2rem; left:3rem;
+            display:flex; align-items:center; gap:0.75rem;
+            color:var(--lichen); font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase;
+            opacity:0; animation:fadeUp 0.8s 1.2s forwards;
+        }
+        .scroll-line {
+            width:40px; height:1px; background:var(--lichen);
+            position:relative; overflow:hidden;
+        }
+        .scroll-line::after {
+            content:''; position:absolute; left:-100%; top:0;
+            width:100%; height:100%; background:var(--leaf);
+            animation:slideRight 2s 1.5s infinite;
+        }
+
+        /* SECTIONS */
+        section { padding:6rem 3rem; max-width:1200px; margin:0 auto; }
+        .divider { width:100%; height:1px; background:var(--border); max-width:1200px; margin:0 auto; }
+        .section-label {
+            font-size:0.65rem; letter-spacing:0.35em; text-transform:uppercase;
+            color:var(--leaf); margin-bottom:1.5rem;
+            display:flex; align-items:center; gap:1rem;
+        }
+        .section-label::before {
+            content:''; display:inline-block;
+            width:24px; height:1px; background:var(--leaf);
+        }
+
+        /* APPS */
+        .apps-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+            gap:1.5rem; margin-top:3rem;
+        }
+        .app-card {
+            background:var(--bark); border:1px solid var(--border);
+            padding:2.5rem; position:relative; overflow:hidden;
+            transition:all 0.4s; text-decoration:none; color:inherit; display:block;
+        }
+        .app-card::before {
+            content:''; position:absolute; inset:0;
+            background:linear-gradient(135deg,rgba(122,140,78,0.05),transparent);
+            opacity:0; transition:opacity 0.4s;
+        }
+        .app-card:hover { border-color:var(--leaf); transform:translateY(-4px); }
+        .app-card:hover::before { opacity:1; }
+        .app-tag {
+            display:inline-block; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase;
+            color:var(--leaf); border:1px solid var(--border); padding:0.25rem 0.6rem; margin-bottom:1.5rem;
+        }
+        .app-tag.coming { color:var(--muted); border-color:var(--lichen); }
+        .app-name {
+            font-family:'Cormorant Garamond',serif;
+            font-size:2rem; font-weight:400; margin-bottom:0.75rem; color:var(--cream);
+        }
+        .app-desc { font-size:0.8rem; color:var(--muted); line-height:1.8; margin-bottom:2rem; }
+        .app-stack { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+        .app-stack span {
+            font-size:0.6rem; color:var(--muted);
+            border:1px solid var(--lichen); padding:0.15rem 0.5rem;
+        }
+        .app-link {
+            font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase;
+            color:var(--canopy); display:flex; align-items:center; gap:0.5rem;
+        }
+        .app-link::after { content:'→'; transition:transform 0.3s; }
+        .app-card:hover .app-link::after { transform:translateX(4px); }
+
+        /* ABOUT */
+        .about-grid {
+            display:grid; grid-template-columns:1fr 1.5fr;
+            gap:6rem; align-items:start; margin-top:3rem;
+        }
+        .about-portrait { position:relative; }
+        .about-portrait::after {
+            content:''; position:absolute; inset:-8px;
+            border:1px solid var(--border); z-index:-1; pointer-events:none;
+        }
+        .portrait-frame {
+            width:100%; aspect-ratio:3/4;
+            background:var(--moss); border:1px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.7rem; color:var(--lichen); letter-spacing:0.1em;
+            position:relative;
+        }
+        .portrait-frame::before,.portrait-frame::after {
+            content:''; position:absolute; width:20px; height:20px;
+            border-color:var(--leaf); border-style:solid;
+        }
+        .portrait-frame::before { top:12px; left:12px; border-width:1px 0 0 1px; }
+        .portrait-frame::after  { bottom:12px; right:12px; border-width:0 1px 1px 0; }
+
+        /* placeholder for logo upload */
+        .logo-placeholder {
+            width:80px; height:80px; border-radius:50%;
+            background:var(--lichen); border:1px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.6rem; color:var(--muted); letter-spacing:0.1em;
+            text-align:center; margin-bottom:1rem;
+        }
+
+        .about-text h2 {
+            font-family:'Cormorant Garamond',serif;
+            font-size:clamp(2rem,4vw,3.5rem); font-weight:300; line-height:1.1; margin-bottom:2rem;
+        }
+        .about-text h2 em { font-style:italic; color:var(--canopy); }
+        .about-text p { font-size:0.82rem; color:var(--muted); line-height:2; margin-bottom:1.5rem; }
+        .about-text p strong { color:var(--cream); font-weight:400; }
+        .skills-row { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:2rem; }
+        .skill-chip {
+            font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase;
+            color:var(--leaf); border:1px solid var(--border);
+            padding:0.3rem 0.7rem; background:rgba(122,140,78,0.05);
+        }
+
+        /* STORY */
+        .story-block { border-left:1px solid var(--border); padding-left:3rem; margin-top:3rem; }
+        .story-quote {
+            font-family:'Cormorant Garamond',serif;
+            font-size:clamp(1.5rem,3vw,2.2rem); font-weight:300; font-style:italic;
+            line-height:1.5; color:var(--cream); margin-bottom:1.5rem;
+        }
+        .story-attribution { font-size:0.7rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+
+        /* CONTACT */
+        .links-grid {
+            display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+            gap:1px; background:var(--border); border:1px solid var(--border); margin-top:3rem;
+        }
+        .link-card {
+            background:var(--soil); padding:2rem;
+            text-decoration:none; color:var(--muted);
+            transition:all 0.3s; display:flex; flex-direction:column; gap:0.75rem;
+        }
+        .link-card:hover { background:var(--bark); color:var(--cream); }
+        .link-icon { font-size:1.4rem; }
+        .link-label { font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--leaf); }
+        .link-value { font-size:0.8rem; }
+
+        /* FOOTER */
+        footer {
+            border-top:1px solid var(--border); padding:3rem;
+            display:flex; justify-content:space-between; align-items:center;
+            flex-wrap:wrap; gap:1rem;
+        }
+        .footer-brand {
+            font-family:'Cormorant Garamond',serif;
+            font-size:1.1rem; font-weight:300; color:var(--canopy); letter-spacing:0.1em;
+        }
+        .footer-copy { font-size:0.7rem; color:var(--lichen); letter-spacing:0.05em; }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(20px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes slideRight {
+            from { left:-100%; }
+            to   { left:100%; }
+        }
+
+        @media (max-width:768px) {
+            nav { padding:1.2rem 1.5rem; }
+            .nav-links { display:none; }
+            .hero { padding:7rem 1.5rem 4rem; }
+            section { padding:4rem 1.5rem; }
+            .about-grid { grid-template-columns:1fr; gap:3rem; }
+            .scroll-hint { left:1.5rem; }
+            footer { padding:2rem 1.5rem; flex-direction:column; align-items:flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/" class="nav-logo">
+        <img src="DEHESA_logo.png" alt="Dehesa Studio" style="height:52px;width:auto;vertical-align:middle;">
+    </a>
+    <ul class="nav-links">
+        <li><a href="#apps">Apps</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="https://github.com/awalim" target="_blank">GitHub</a></li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+    <p class="hero-eyebrow">Dehesa Studio &nbsp;·&nbsp; Gran Canaria, Spain</p>
+    <h1 class="hero-title">
+        Tools that<br>make <em>sense</em><br>of things
+        <span class="accent">AI-powered apps for humans who value their time</span>
+    </h1>
+    <p class="hero-tagline">
+        Small studio building thoughtful software at the intersection of AI and everyday life.
+        Each tool does one thing well, and nothing more than it needs to.
+    </p>
+    <div class="hero-cta">
+        <a href="#apps" class="btn-primary">See what we build</a>
+        <a href="https://github.com/awalim" target="_blank" class="btn-secondary">↗ GitHub</a>
+    </div>
+    <div class="scroll-hint">
+        <div class="scroll-line"></div>
+        Scroll to explore
+    </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- APPS -->
+<section id="apps">
+    <p class="section-label">What we build</p>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);font-weight:300;max-width:20ch;line-height:1.2;">
+        Apps that solve real problems<br>for real people
+    </h2>
+    <div class="apps-grid">
+        <a href="https://github.com/awalim/tubesum" target="_blank" class="app-card">
+            <span class="app-tag">Live · Free to try</span>
+            <h3 class="app-name">TubeSum</h3>
+            <p class="app-desc">
+                Paste any YouTube URL. Get a structured summary, step-by-step guide,
+                key concepts with documentation links, and an honest "worth watching?" verdict.
+                Handles 8-hour lectures. Works in English and Spanish.
+            </p>
+            <div class="app-stack">
+                <span>Python</span><span>FastAPI</span><span>SQLite</span>
+                <span>OpenAI</span><span>Groq</span><span>Claude</span>
+            </div>
+            <span class="app-link">View on GitHub</span>
+        </a>
+
+        <div class="app-card" style="opacity:0.45;cursor:default;">
+            <span class="app-tag coming">In the field · Coming</span>
+            <h3 class="app-name" style="color:var(--muted);">Reforesta</h3>
+            <p class="app-desc">
+                A tool for guerrilla reforesters. Track seeds, log plantings,
+                map native species recovery areas, and connect with others doing quiet,
+                patient work to restore what was lost.
+            </p>
+            <div class="app-stack"><span>Idea stage</span></div>
+            <span class="app-link" style="color:var(--lichen);">Coming when it's ready</span>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ABOUT -->
+<section id="about">
+    <p class="section-label">The person behind it</p>
+    <div class="about-grid">
+        <div class="about-portrait">
+            <div class="portrait-frame" style="background:var(--soil);">
+                <img src="DEHESA_logo.png" alt="Dehesa Studio"
+                    style="width:85%;height:auto;object-fit:contain;">
+            </div>
+        </div>
+        <div class="about-text">
+            <h2>Rooted in<br><em>operations,</em><br>growing into AI</h2>
+            <p>
+                I'm <strong>Andrea de la Dehesa Demaria</strong> — operations strategist, AI builder,
+                and resident of Gran Canaria. I spent 12+ years making complex systems run smoothly,
+                from ISO 27001 certifications to 90,000-person events.
+            </p>
+            <p>
+                Now I'm finishing an <strong>MSc in AI Business & Innovation</strong> and building
+                tools that apply that same problem-solving instinct to software — things that are
+                useful, honest, and don't waste your time.
+            </p>
+            <p>
+                The name Dehesa is mine by heritage — <em>de la Dehesa</em> is the piece of my full
+                Spanish name that bureaucracies kept erasing. A dehesa is also a managed landscape
+                where nothing is wasted and everything connects. That felt right for a studio.
+            </p>
+            <p>
+                I'm <strong>open to AI and operations roles in Europe</strong>.
+                If what you're building needs someone who understands both the systems and the humans
+                inside them, let's talk.
+            </p>
+            <div class="skills-row">
+                <span class="skill-chip">AI / LLMs</span>
+                <span class="skill-chip">RAG Systems</span>
+                <span class="skill-chip">FastAPI</span>
+                <span class="skill-chip">Python</span>
+                <span class="skill-chip">Operations</span>
+                <span class="skill-chip">ISO 27001</span>
+                <span class="skill-chip">Langflow</span>
+                <span class="skill-chip">Docker</span>
+                <span class="skill-chip">English · Spanish</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- STORY -->
+<section>
+    <p class="section-label">A small origin story</p>
+    <div class="story-block">
+        <p class="story-quote">
+            "My great-grandfather Luis was given the name Campua by King Alfonso XII —
+            he was the royal court photographer. Four generations later, his descendant
+            builds AI tools in the Canary Islands and plants native trees in empty fields
+            on weekends. The instinct to document, to recover, to make things visible
+            — it runs in the family."
+        </p>
+        <p class="story-attribution">— Andrea, founder of Dehesa Studio</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONTACT -->
+<section id="contact">
+    <p class="section-label">Find me here</p>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);font-weight:300;margin-bottom:0.5rem;">
+        Let's build something<br><em>worth building</em>
+    </h2>
+    <p style="color:var(--muted);font-size:0.8rem;max-width:45ch;margin-top:0.5rem;">
+        Open to collaborations, freelance AI projects, and full-time roles in Europe.
+    </p>
+    <div class="links-grid">
+        <a href="mailto:ops@demaria.link" class="link-card">
+            <span class="link-icon">✉</span>
+            <span class="link-label">Email</span>
+            <span class="link-value">ops@demaria.link</span>
+        </a>
+        <a href="https://www.linkedin.com/in/andrea-d-demaria/" target="_blank" class="link-card">
+            <span class="link-icon">◈</span>
+            <span class="link-label">LinkedIn</span>
+            <span class="link-value">andrea-d-demaria</span>
+        </a>
+        <a href="https://github.com/awalim" target="_blank" class="link-card">
+            <span class="link-icon">◉</span>
+            <span class="link-label">GitHub</span>
+            <span class="link-value">github.com/awalim</span>
+        </a>
+        <a href="https://buymeacoffee.com/awalim" target="_blank" class="link-card">
+            <span class="link-icon">☕</span>
+            <span class="link-label">Buy Me a Coffee</span>
+            <span class="link-value">Support the work</span>
+        </a>
+    </div>
+</section>
+
+<footer>
+    <span class="footer-brand">Dehesa Studio</span>
+    <span class="footer-copy">Gran Canaria, Spain &nbsp;·&nbsp; Built with patience &nbsp;·&nbsp; dehesa.dev</span>
+</footer>
+
+</body>
+</html>
