@@ -471,7 +471,9 @@
 </div>
 
 <script>
-const API_URL = 'http://localhost:8000';
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000'
+    : 'https://tubesum-backend.up.railway.app';
 let currentLanguage = 'en';
 let currentProvider = 'openai';
 let historyItems = [];
