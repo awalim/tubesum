@@ -125,12 +125,14 @@ def fetch_video_title(video_id: str) -> str:
 
 def extract_transcript(video_id: str) -> str:
     try:
-        # Use proxy if configured (needed for cloud deployments — YouTube blocks cloud IPs)
-        proxy_url = os.getenv("PROXY_URL")  # format: http://user:pass@host:port
+        # Proxy needed for cloud deployments — YouTube blocks cloud provider IPs
+        proxy_url = os.getenv("PROXY_URL")
         if proxy_url:
-            from youtube_transcript_api import YouTubeTranscriptApi as YTA
-            proxies = {"http": proxy_url, "https": proxy_url}
-            api = YTA(proxies=proxies)
+            # Pass proxy via requests-compatible proxies dict
+            import requests
+            session = requests.Session()
+            session.proxies = {"http": proxy_url, "https": proxy_url}
+            api = YouTubeTranscriptApi(http_client=session)
         else:
             api = YouTubeTranscriptApi()
 
