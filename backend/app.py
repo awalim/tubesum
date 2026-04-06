@@ -125,13 +125,14 @@ def fetch_video_title(video_id: str) -> str:
 
 def extract_transcript(video_id: str) -> str:
     try:
-        # Proxy needed for cloud deployments — YouTube blocks cloud provider IPs
+        # Rotating residential proxy — needed for cloud deployments
+        # YouTube blocks all cloud provider IPs (Railway runs on Google Cloud)
         proxy_url = os.getenv("PROXY_URL")
         if proxy_url:
-            # Pass proxy via requests-compatible proxies dict
             import requests
             session = requests.Session()
             session.proxies = {"http": proxy_url, "https": proxy_url}
+            session.verify = True
             api = YouTubeTranscriptApi(http_client=session)
         else:
             api = YouTubeTranscriptApi()
