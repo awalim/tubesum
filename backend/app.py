@@ -11,13 +11,15 @@ from dotenv import load_dotenv
 import json
 import hmac
 import hashlib
+import secrets
 
 load_dotenv()
 
 from database import (
     create_user, verify_user, create_session, get_user_from_token,
     delete_session, can_use, increment_usage, get_daily_usage,
-    upgrade_to_pro, downgrade_to_free, FREE_DAILY_LIMIT, get_user_by_id
+    upgrade_to_pro, downgrade_to_free, FREE_DAILY_LIMIT, get_user_by_id,
+    get_conn
 )
 
 app = FastAPI(title="TubeSum API")
@@ -566,6 +568,47 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+# ── GDPR — Account deletion ────────────────────────────────────────────────────
+
+@app.delete("/auth/account")
+async def delete_account(authorization: str = Header(default=None)):
+    """
+    GDPR Article 17 — Right to erasure.
+    Deletes all personal data associated with the account.
+    Email is anonymised, password hash wiped, usage records deleted.
+    """
+    user = get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    user_id = user["id"]
+    with get_conn() as conn:
+        # Delete usage records
+        conn.execute("DELETE FROM usage WHERE user_id = ?", (user_id,))
+        # Invalidate all sessions
+        conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        # Anonymise user record — keep row for referential integrity but wipe PII
+        conn.execute("""
+            UPDATE users
+            SET email = ?,
+                password_hash = 'deleted',
+                salt = 'deleted',
+                is_active = 0,
+                stripe_customer_id = NULL,
+                stripe_subscription_id = NULL
+            WHERE id = ?
+        """, (f"deleted_{user_id}_{secrets.token_hex(4)}@deleted.invalid", user_id))
+
+    return {"message": "Your account and all associated data have been permanently deleted."}
+
+
+@app.get("/privacy")
+async def privacy_redirect():
+    """Redirect to privacy policy page."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="https://dehesa.dev/privacy")
 
 
 if __name__ == "__main__":

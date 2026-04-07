@@ -849,6 +849,7 @@ function renderAuthBar() {
             }
             <span style="color:var(--text-muted);font-size:0.85rem;">${currentUser.email}</span>
             <button onclick="doLogout()" class="auth-btn secondary">Log out</button>
+            <button onclick="confirmDeleteAccount()" class="auth-btn secondary" style="color:var(--error);border-color:var(--error);font-size:0.75rem;">Delete account</button>
         `;
     } else {
         bar.innerHTML = `
@@ -967,6 +968,25 @@ async function doLogout() {
     showSuccess('Logged out.');
 }
 
+async function confirmDeleteAccount() {
+    if (!confirm('⚠️ Permanently delete your account?\n\nThis will immediately erase your email, password, and all usage data. This cannot be undone.')) return;
+    try {
+        const token = localStorage.getItem('ts_token');
+        const r = await fetch(`${API_URL}/auth/account`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (r.ok) {
+            localStorage.removeItem('ts_token');
+            currentUser = null;
+            renderAuthBar();
+            showSuccess('Your account has been permanently deleted.');
+        } else {
+            showError('Could not delete account. Please email ops@demaria.link');
+        }
+    } catch(e) { showError('Connection error'); }
+}
+
 // ── Upgrade modal ──────────────────────────────────────────────────────────────
 const FREE_DAILY_LIMIT = 3;
 function openUpgradeModal() {
@@ -1022,7 +1042,7 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
         <input id="regPw"    type="password" placeholder="Password (8+ chars)" class="field-input">
         <input id="regPw2"   type="password" placeholder="Confirm password"  class="field-input">
         <button onclick="doRegister()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;font-size:1rem;cursor:pointer;font-weight:600;">Create free account</button>
-        <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;">3 free summaries per day · No credit card needed</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;">3 free summaries per day · No credit card needed · <a href="https://dehesa.dev/privacy" target="_blank" style="color:var(--primary);">Privacy Policy</a></p>
     </div>
     <p id="authError" style="color:var(--error);font-size:0.85rem;margin-top:0.75rem;text-align:center;"></p>
 </div>
