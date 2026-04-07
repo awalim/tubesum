@@ -467,6 +467,15 @@
     <div class="footer">
         <p>TubeSum · Extract YouTube transcripts instantly · AI summaries with any provider</p>
         <p style="margin-top:0.5rem;">Made with ⚡ for tutorial learners | 🇺🇸 English | 🇪🇸 Español</p>
+        <p style="margin-top:0.75rem;font-size:0.8rem;">
+            Built by <a href="https://dehesa.dev" target="_blank" style="color:var(--primary);">Dehesa Studio</a>
+            &nbsp;·&nbsp;
+            <a href="https://dehesa.dev/privacy" target="_blank" style="color:var(--text-muted);">Privacy Policy</a>
+            &nbsp;·&nbsp;
+            <span id="deleteAccountFooter" style="display:none;">
+                <a href="#" onclick="confirmDeleteAccount();return false;" style="color:var(--error);font-size:0.75rem;">Delete my account</a>
+            </span>
+        </p>
     </div>
 </div>
 
@@ -835,6 +844,7 @@ async function refreshUser(token) {
 
 function renderAuthBar() {
     const bar = document.getElementById('authBar');
+    const deleteFooter = document.getElementById('deleteAccountFooter');
     if (!bar) return;
     if (currentUser) {
         const isPro = currentUser.tier === 'pro';
@@ -849,14 +859,15 @@ function renderAuthBar() {
             }
             <span style="color:var(--text-muted);font-size:0.85rem;">${currentUser.email}</span>
             <button onclick="doLogout()" class="auth-btn secondary">Log out</button>
-            <button onclick="confirmDeleteAccount()" class="auth-btn secondary" style="color:var(--error);border-color:var(--error);font-size:0.75rem;">Delete account</button>
         `;
+        if (deleteFooter) deleteFooter.style.display = 'inline';
     } else {
         bar.innerHTML = `
             <span style="color:var(--text-muted);font-size:0.85rem;">Sign in for free summaries</span>
             <button onclick="openAuthModal('login')" class="auth-btn secondary">Log in</button>
             <button onclick="openAuthModal('register')" class="auth-btn primary">Sign up free</button>
         `;
+        if (deleteFooter) deleteFooter.style.display = 'none';
     }
 }
 
