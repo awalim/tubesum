@@ -396,6 +396,27 @@ def _ls_headers():
     }
 
 
+def _ls_request(method: str, path: str, body: dict = None):
+    """Make a request to the Lemon Squeezy API."""
+    url = f"https://api.lemonsqueezy.com/v1/{path}"
+    data = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers=_ls_headers(),
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode()
+        raise HTTPException(
+            status_code=502,
+            detail=f"Lemon Squeezy error {e.code}: {error_body}"
+        )
+
+
 @app.post("/payments/create-checkout")
 async def create_checkout(authorization: str = Header(default=None)):
     """Create a Lemon Squeezy checkout URL for the Pro plan."""
@@ -407,7 +428,7 @@ async def create_checkout(authorization: str = Header(default=None)):
     if not LS_API_KEY or not LS_PRO_VARIANT_ID:
         raise HTTPException(status_code=503, detail="Payment system not configured yet")
 
-    body = json.dumps({
+    body = {
         "data": {
             "type": "checkouts",
             "attributes": {
@@ -420,25 +441,15 @@ async def create_checkout(authorization: str = Header(default=None)):
                 },
             },
             "relationships": {
-                "store":   {"data": {"type": "stores",   "id": LS_STORE_ID}},
-                "variant": {"data": {"type": "variants",  "id": LS_PRO_VARIANT_ID}},
+                "store":   {"data": {"type": "stores",   "id": str(LS_STORE_ID)}},
+                "variant": {"data": {"type": "variants",  "id": str(LS_PRO_VARIANT_ID)}},
             },
         }
-    }).encode()
+    }
 
-    req = urllib.request.Request(
-        "https://api.lemonsqueezy.com/v1/checkouts",
-        data=body,
-        headers=_ls_headers(),
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode())
-            checkout_url = data["data"]["attributes"]["url"]
-            return {"checkout_url": checkout_url}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Payment provider error: {e}")
+    data = _ls_request("POST", "checkouts", body)
+    checkout_url = data["data"]["attributes"]["url"]
+    return {"checkout_url": checkout_url}
 
 
 @app.post("/payments/webhook")
