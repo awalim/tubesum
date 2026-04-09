@@ -35,11 +35,11 @@ app.add_middleware(
 # ── Lemon Squeezy config ──────────────────────────────────────────────────────
 # Lemon Squeezy is a Merchant of Record — they handle EU VAT, invoicing, taxes.
 # You receive money as a creator. No autónoma registration required to start.
-LS_API_KEY            = os.getenv("LS_API_KEY", "")             # from lemonsqueezy.com/settings/api
-LS_WEBHOOK_SECRET     = os.getenv("LS_WEBHOOK_SECRET", "")      # from webhook settings
-LS_STORE_ID           = os.getenv("LS_STORE_ID", "")            # your store ID
-LS_PRO_VARIANT_ID     = os.getenv("LS_PRO_VARIANT_ID", "")      # variant ID for €4/mo plan
-APP_DOMAIN            = os.getenv("APP_DOMAIN", "http://localhost:3000")
+LS_API_KEY            = os.getenv("LS_API_KEY", "").strip()        # from lemonsqueezy.com/settings/api
+LS_WEBHOOK_SECRET     = os.getenv("LS_WEBHOOK_SECRET", "").strip()  # from webhook settings
+LS_STORE_ID           = os.getenv("LS_STORE_ID", "").strip()        # your store ID
+LS_PRO_VARIANT_ID     = os.getenv("LS_PRO_VARIANT_ID", "").strip()  # variant ID for €4/mo plan
+APP_DOMAIN            = os.getenv("APP_DOMAIN", "http://localhost:3000").strip()
 
 # ── Provider config ────────────────────────────────────────────────────────────
 PROVIDER_CONFIG = {
