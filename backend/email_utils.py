@@ -54,15 +54,24 @@ def _send_sync(to: str, subject: str, html_body: str, from_addr: str, from_name:
     msg["To"] = to
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
+    # Port 465 = implicit TLS (SMTP_SSL). Everything else (587, 25) = plain + STARTTLS upgrade.
+    use_ssl = port == 465
+
     try:
-        with smtplib.SMTP(host, port, timeout=20) as server:
+        if use_ssl:
+            server_cm = smtplib.SMTP_SSL(host, port, timeout=20)
+        else:
+            server_cm = smtplib.SMTP(host, port, timeout=20)
+
+        with server_cm as server:
             server.ehlo()
-            try:
-                server.starttls()
-                server.ehlo()
-            except smtplib.SMTPNotSupportedError:
-                # Server doesn't support STARTTLS; continue plain (rare).
-                pass
+            if not use_ssl:
+                try:
+                    server.starttls()
+                    server.ehlo()
+                except smtplib.SMTPNotSupportedError:
+                    # Server doesn't support STARTTLS; continue plain (rare).
+                    pass
             if user and password:
                 server.login(user, password)
             server.sendmail(from_addr, [to], msg.as_string())
