@@ -19,7 +19,12 @@ from database import (
     create_user, verify_user, create_session, get_user_from_token,
     delete_session, can_use, increment_usage, get_daily_usage,
     upgrade_to_pro, downgrade_to_free, FREE_DAILY_LIMIT, get_user_by_id,
-    get_conn
+    get_conn, get_user_by_email, create_password_reset_token,
+    get_valid_password_reset_user_id, delete_password_reset_token,
+    update_user_password,
+)
+from email_utils import (
+    send_welcome_email, send_password_reset_email, send_password_changed_email,
 )
 
 app = FastAPI(title="TubeSum API")
@@ -60,6 +65,13 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 class VideoRequest(BaseModel):
     url: str
@@ -342,6 +354,11 @@ async def register(req: RegisterRequest):
     if not user:
         raise HTTPException(status_code=409, detail="Email already registered")
     token = create_session(user["id"])
+
+    # Welcome email — username derived from local part of email
+    username = user["email"].split("@", 1)[0]
+    send_welcome_email(user_email=user["email"], username=username)
+
     return {
         "token": token,
         "user": {"email": user["email"], "tier": user["tier"]}
@@ -365,6 +382,47 @@ async def logout(authorization: str = Header(default=None)):
     if authorization and authorization.startswith("Bearer "):
         delete_session(authorization[7:])
     return {"message": "Logged out"}
+
+
+@app.post("/auth/request-password-reset")
+async def request_password_reset(req: PasswordResetRequest):
+    """
+    Generate a password reset token, store it (1 hour TTL), and email the user.
+    Always returns 200 regardless of whether the email exists,
+    to avoid leaking which emails are registered.
+    """
+    user = get_user_by_email(req.email)
+    if user:
+        token = secrets.token_urlsafe(32)
+        create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
+        reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
+        send_password_reset_email(user_email=user["email"], reset_url=reset_url)
+    return {"message": "If that email is registered, a reset link has been sent."}
+
+
+@app.post("/auth/reset-password")
+async def reset_password(req: PasswordResetConfirm):
+    """
+    Validate reset token, update the password, delete the token,
+    then send a confirmation email.
+    """
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    user_id = get_valid_password_reset_user_id(req.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    update_user_password(user_id, req.new_password)
+    delete_password_reset_token(req.token)
+
+    user = get_user_by_id(user_id)
+    if user:
+        from datetime import datetime as _dt
+        datetime_str = _dt.utcnow().strftime("%d %b %Y at %H:%M UTC")
+        send_password_changed_email(user_email=user["email"], datetime_str=datetime_str)
+
+    return {"message": "Password updated successfully."}
 
 
 @app.get("/auth/me")

@@ -51,6 +51,13 @@ def init_db():
             count      INTEGER NOT NULL DEFAULT 0,
             UNIQUE(user_id, used_on)
         );
+
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            token      TEXT PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES users(id),
+            created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+            expires_at TEXT    NOT NULL
+        );
         """)
 
 
@@ -193,6 +200,50 @@ def downgrade_to_free(stripe_subscription_id: str):
             UPDATE users SET tier = 'free'
             WHERE stripe_subscription_id = ?
         """, (stripe_subscription_id,))
+
+
+# ── Password reset tokens ─────────────────────────────────────────────────────
+
+def create_password_reset_token(user_id: int, token: str, ttl_seconds: int = 3600):
+    """Store a password reset token with the given TTL (default 1 hour)."""
+    from datetime import timedelta
+    expires_at = (datetime.utcnow() + timedelta(seconds=ttl_seconds)).strftime("%Y-%m-%d %H:%M:%S")
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
+            (token, user_id, expires_at),
+        )
+
+
+def get_valid_password_reset_user_id(token: str) -> int | None:
+    """Return the user_id for a valid (non-expired) token, else None."""
+    if not token:
+        return None
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT user_id FROM password_reset_tokens
+            WHERE token = ? AND expires_at > datetime('now')
+            """,
+            (token,),
+        ).fetchone()
+    return row["user_id"] if row else None
+
+
+def delete_password_reset_token(token: str):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
+
+
+def update_user_password(user_id: int, new_password: str):
+    """Update password hash (and salt) for a user."""
+    salt = secrets.token_hex(16)
+    pw_hash = _hash_password(new_password, salt)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET password_hash = ?, salt = ? WHERE id = ?",
+            (pw_hash, salt, user_id),
+        )
 
 
 # ── Init on import ────────────────────────────────────────────────────────────
