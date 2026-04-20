@@ -1,24 +1,24 @@
 """
-SMTP email sending for TubeSum transactional emails.
+Transactional email sending for TubeSum via Resend's HTTPS API.
 
-Sends welcome, password-reset, and password-changed emails via SMTP.
-Uses stdlib smtplib + email.mime. Non-blocking via threading.Thread.
+Sends welcome, password-reset, and password-changed emails by POSTing to
+https://api.resend.com/emails over port 443. We use the HTTPS API (not SMTP)
+because Railway blocks outbound SMTP ports (25/465/587); HTTPS is not blocked.
 
-Env vars (see .env.example):
-    SMTP_HOST
-    SMTP_PORT (default 587)
-    SMTP_USER
-    SMTP_PASS
+Uses stdlib urllib + json — no extra dependency. Non-blocking via threading.Thread.
 
-If SMTP_HOST is not set, send_email() logs a warning and no-ops,
-so local dev does not crash.
+Env var (see .env.example):
+    RESEND_API_KEY      your Resend API key (re_...)
+
+If RESEND_API_KEY is not set, send_email() logs a warning and no-ops, so local
+dev does not crash.
 """
 import os
-import smtplib
+import json
 import logging
 import threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import urllib.request
+import urllib.error
 from email.utils import formataddr
 
 logger = logging.getLogger(__name__)
@@ -31,51 +31,43 @@ NOREPLY_FROM_NAME  = "TubeSum"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Low-level SMTP
+# Low-level transport — Resend HTTPS API
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _smtp_config():
-    host = os.getenv("SMTP_HOST", "").strip()
-    port = int(os.getenv("SMTP_PORT", "587").strip() or "587")
-    user = os.getenv("SMTP_USER", "").strip()
-    password = os.getenv("SMTP_PASS", "")
-    return host, port, user, password
+RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 
 def _send_sync(to: str, subject: str, html_body: str, from_addr: str, from_name: str):
-    host, port, user, password = _smtp_config()
-    if not host:
-        logger.warning("SMTP_HOST not set — skipping email to %s (subject: %s)", to, subject)
+    api_key = os.getenv("RESEND_API_KEY", "").strip()
+    if not api_key:
+        logger.warning("RESEND_API_KEY not set — skipping email to %s (subject: %s)", to, subject)
         return
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = formataddr((from_name, from_addr))
-    msg["To"] = to
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+    payload = json.dumps({
+        "from": formataddr((from_name, from_addr)),
+        "to": [to],
+        "subject": subject,
+        "html": html_body,
+    }).encode("utf-8")
 
-    # Port 465 = implicit TLS (SMTP_SSL). Everything else (587, 25) = plain + STARTTLS upgrade.
-    use_ssl = port == 465
+    req = urllib.request.Request(
+        RESEND_ENDPOINT,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
 
     try:
-        if use_ssl:
-            server_cm = smtplib.SMTP_SSL(host, port, timeout=20)
-        else:
-            server_cm = smtplib.SMTP(host, port, timeout=20)
-
-        with server_cm as server:
-            server.ehlo()
-            if not use_ssl:
-                try:
-                    server.starttls()
-                    server.ehlo()
-                except smtplib.SMTPNotSupportedError:
-                    # Server doesn't support STARTTLS; continue plain (rare).
-                    pass
-            if user and password:
-                server.login(user, password)
-            server.sendmail(from_addr, [to], msg.as_string())
-        logger.info("Email sent to %s (subject: %s)", to, subject)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            logger.info("Email sent to %s (subject: %s) — Resend id: %s", to, subject, body)
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        logger.error("Resend rejected email to %s (subject: %s): HTTP %s — %s",
+                     to, subject, e.code, err_body)
     except Exception as e:
         logger.exception("Failed to send email to %s: %s", to, e)
 

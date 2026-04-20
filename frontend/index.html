@@ -981,8 +981,12 @@ async function doLogout() {
 
 async function confirmDeleteAccount() {
     if (!confirm('⚠️ Permanently delete your account?\n\nThis will immediately erase your email, password, and all usage data. This cannot be undone.')) return;
+    const token = localStorage.getItem('ts_token');
+    if (!token) {
+        showError('You are not signed in. Please log in and try again.');
+        return;
+    }
     try {
-        const token = localStorage.getItem('ts_token');
         const r = await fetch(`${API_URL}/auth/account`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -992,10 +996,22 @@ async function confirmDeleteAccount() {
             currentUser = null;
             renderAuthBar();
             showSuccess('Your account has been permanently deleted.');
-        } else {
-            showError('Could not delete account. Please email ops@demaria.link');
+            return;
         }
-    } catch(e) { showError('Connection error'); }
+        // Surface the real reason so we stop guessing.
+        let detail = `HTTP ${r.status}`;
+        try { const j = await r.json(); if (j && j.detail) detail = j.detail; } catch(_) {}
+        if (r.status === 401) {
+            localStorage.removeItem('ts_token');
+            currentUser = null;
+            renderAuthBar();
+            showError('Your session expired. Please log in again and retry deletion.');
+        } else {
+            showError(`Could not delete account (${detail}). Email support@dehesa.dev if this persists.`);
+        }
+    } catch(e) {
+        showError('Connection error. Check your network and try again.');
+    }
 }
 
 // ── Upgrade modal ──────────────────────────────────────────────────────────────
