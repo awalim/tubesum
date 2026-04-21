@@ -1,16 +1,20 @@
 """
-Transactional email sending for TubeSum via Resend's HTTPS API.
+Transactional email sending for TubeSum via Brevo's HTTPS API.
 
 Sends welcome, password-reset, and password-changed emails by POSTing to
-https://api.resend.com/emails over port 443. We use the HTTPS API (not SMTP)
-because Railway blocks outbound SMTP ports (25/465/587); HTTPS is not blocked.
+https://api.brevo.com/v3/smtp/email over port 443. We use the HTTPS API (not
+SMTP) because Railway blocks outbound SMTP ports (25/465/587); HTTPS is not
+blocked.
+
+Brevo's free tier allows 300 emails/day with no per-recipient restriction once
+the sender domain (dehesa.dev) is verified.
 
 Uses stdlib urllib + json — no extra dependency. Non-blocking via threading.Thread.
 
 Env var (see .env.example):
-    RESEND_API_KEY      your Resend API key (re_...)
+    BREVO_API_KEY       your Brevo v3 API key (xkeysib-...)
 
-If RESEND_API_KEY is not set, send_email() logs a warning and no-ops, so local
+If BREVO_API_KEY is not set, send_email() logs a warning and no-ops, so local
 dev does not crash.
 """
 import os
@@ -19,7 +23,6 @@ import logging
 import threading
 import urllib.request
 import urllib.error
-from email.utils import formataddr
 
 logger = logging.getLogger(__name__)
 
@@ -31,31 +34,32 @@ NOREPLY_FROM_NAME  = "TubeSum"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Low-level transport — Resend HTTPS API
+# Low-level transport — Brevo HTTPS API
 # ══════════════════════════════════════════════════════════════════════════════
 
-RESEND_ENDPOINT = "https://api.resend.com/emails"
+BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 
 
 def _send_sync(to: str, subject: str, html_body: str, from_addr: str, from_name: str):
-    api_key = os.getenv("RESEND_API_KEY", "").strip()
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
     if not api_key:
-        logger.warning("RESEND_API_KEY not set — skipping email to %s (subject: %s)", to, subject)
+        logger.warning("BREVO_API_KEY not set — skipping email to %s (subject: %s)", to, subject)
         return
 
     payload = json.dumps({
-        "from": formataddr((from_name, from_addr)),
-        "to": [to],
-        "subject": subject,
-        "html": html_body,
+        "sender":      {"name": from_name, "email": from_addr},
+        "to":          [{"email": to}],
+        "subject":     subject,
+        "htmlContent": html_body,
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        RESEND_ENDPOINT,
+        BREVO_ENDPOINT,
         data=payload,
         method="POST",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "api-key":      api_key,
+            "accept":       "application/json",
             "Content-Type": "application/json",
         },
     )
@@ -63,10 +67,10 @@ def _send_sync(to: str, subject: str, html_body: str, from_addr: str, from_name:
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", errors="replace")
-            logger.info("Email sent to %s (subject: %s) — Resend id: %s", to, subject, body)
+            logger.info("Email sent to %s (subject: %s) — Brevo response: %s", to, subject, body)
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace")
-        logger.error("Resend rejected email to %s (subject: %s): HTTP %s — %s",
+        logger.error("Brevo rejected email to %s (subject: %s): HTTP %s — %s",
                      to, subject, e.code, err_body)
     except Exception as e:
         logger.exception("Failed to send email to %s: %s", to, e)
