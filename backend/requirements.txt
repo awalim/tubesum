@@ -4,6 +4,6 @@ uvicorn[standard]==0.29.0
 openai>=1.0.0
 python-dotenv>=1.0.1
 requests>=2.31.0
-wikipedia-api
+wikipedia
 duckduckgo-search
 # stripe removed — using Lemon Squeezy (no extra package needed, uses stdlib urllib)
