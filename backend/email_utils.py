@@ -35,11 +35,12 @@ BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 
 def send_email(to: str, subject: str, html_body: str,
                from_addr: str = NOREPLY_FROM, from_name: str = NOREPLY_FROM_NAME):
-        print(f"🔵 send_email called for {to}", flush=True)
     """
     Send an HTML email synchronously (blocks until send completes or fails).
     Returns True on success, False on failure.
     """
+    print(f"🔵 send_email called for {to}", flush=True)
+    
     api_key = os.getenv("BREVO_API_KEY", "").strip()
     if not api_key:
         logger.warning("BREVO_API_KEY not set — skipping email to %s", to)
@@ -79,8 +80,6 @@ def send_email(to: str, subject: str, html_body: str,
         logger.exception("❌ Failed to send email to %s: %s", to, e)
         print(f"❌ Exception sending to {to}: {e}", flush=True)
         return False
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Templates (unchanged – your existing HTML is perfect)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -214,7 +213,7 @@ def send_password_reset_email(user_email: str, reset_url: str):
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
-            )
+    )
 
 def send_password_changed_email(user_email: str, datetime_str: str):
     html = PASSWORD_CHANGED_HTML.format(user_email=user_email, datetime_str=datetime_str)
