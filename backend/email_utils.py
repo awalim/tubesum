@@ -23,6 +23,7 @@ import logging
 import threading
 import urllib.request
 import urllib.error
+from fastapi import BackgroundTasks
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,54 @@ def send_email(to: str, subject: str, html_body: str,
         daemon=True,
     )
     t.start()
+# Add this function alongside your existing ones:
 
+def send_email_sync(to: str, subject: str, html_body: str,
+                    from_addr: str = NOREPLY_FROM, from_name: str = NOREPLY_FROM_NAME):
+    """
+    Synchronous version - use with BackgroundTasks, NOT direct calls.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
+    if not api_key:
+        logger.warning("BREVO_API_KEY not set — skipping email to %s", to)
+        return False
+
+    payload = json.dumps({
+        "sender":      {"name": from_name, "email": from_addr},
+        "to":          [{"email": to}],
+        "subject":     subject,
+        "htmlContent": html_body,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        BREVO_ENDPOINT,
+        data=payload,
+        method="POST",
+        headers={
+            "api-key":      api_key,
+            "accept":       "application/json",
+            "Content-Type": "application/json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            logger.info("✅ Email sent to %s (subject: %s)", to, subject)
+            print(f"✅ Email sent to {to}", flush=True)
+            return True
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        logger.error("❌ Brevo rejected email to %s: HTTP %s — %s", to, e.code, err_body)
+        print(f"❌ Brevo error for {to}: {e.code} - {err_body}", flush=True)
+        return False
+    except Exception as e:
+        logger.exception("❌ Failed to send email to %s: %s", to, e)
+        print(f"❌ Exception sending to {to}: {e}", flush=True)
+        return False
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Templates (inner HTML of .email-preview from tubesum_email_templates.html)
@@ -197,34 +245,45 @@ PASSWORD_CHANGED_HTML = """\
 # High-level per-email helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
-def send_welcome_email(user_email: str, username: str):
+# Replace your existing helper functions with these:
+
+def send_welcome_email_background(background_tasks: BackgroundTasks, user_email: str, username: str):
+    """Queue welcome email to be sent after response."""
     html = WELCOME_HTML.format(username=username, user_email=user_email)
-    send_email(
+    background_tasks.add_task(
+        send_email_sync,
         to=user_email,
         subject="Welcome to TubeSum ⚡",
         html_body=html,
         from_addr=WELCOME_FROM,
         from_name=WELCOME_FROM_NAME,
     )
+    print(f"📧 Queued welcome email for {user_email}", flush=True)
 
 
-def send_password_reset_email(user_email: str, reset_url: str):
+def send_password_reset_email_background(background_tasks: BackgroundTasks, user_email: str, reset_url: str):
+    """Queue password reset email to be sent after response."""
     html = PASSWORD_RESET_HTML.format(user_email=user_email, reset_url=reset_url)
-    send_email(
+    background_tasks.add_task(
+        send_email_sync,
         to=user_email,
         subject="Reset your TubeSum password",
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
     )
+    print(f"📧 Queued password reset email for {user_email}", flush=True)
 
 
-def send_password_changed_email(user_email: str, datetime_str: str):
+def send_password_changed_email_background(background_tasks: BackgroundTasks, user_email: str, datetime_str: str):
+    """Queue password changed email to be sent after response."""
     html = PASSWORD_CHANGED_HTML.format(user_email=user_email, datetime_str=datetime_str)
-    send_email(
+    background_tasks.add_task(
+        send_email_sync,
         to=user_email,
         subject="Your TubeSum password was changed",
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
     )
+    print(f"📧 Queued password changed email for {user_email}", flush=True)

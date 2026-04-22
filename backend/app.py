@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -347,7 +347,7 @@ async def root():
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/register")
-async def register(req: RegisterRequest):
+async def register(req: RegisterRequest, background_tasks: BackgroundTasks):  # Add this parameter
     if len(req.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user = create_user(req.email, req.password)
@@ -355,15 +355,14 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=409, detail="Email already registered")
     token = create_session(user["id"])
 
-    # Welcome email — username derived from local part of email
+    # Queue welcome email instead of sending directly
     username = user["email"].split("@", 1)[0]
-    send_welcome_email(user_email=user["email"], username=username)
+    send_welcome_email_background(background_tasks, user_email=user["email"], username=username)
 
     return {
         "token": token,
         "user": {"email": user["email"], "tier": user["tier"]}
     }
-
 
 @app.post("/auth/login")
 async def login(req: LoginRequest):
@@ -385,27 +384,18 @@ async def logout(authorization: str = Header(default=None)):
 
 
 @app.post("/auth/request-password-reset")
-async def request_password_reset(req: PasswordResetRequest):
-    """
-    Generate a password reset token, store it (1 hour TTL), and email the user.
-    Always returns 200 regardless of whether the email exists,
-    to avoid leaking which emails are registered.
-    """
+async def request_password_reset(req: PasswordResetRequest, background_tasks: BackgroundTasks):  # Add this
     user = get_user_by_email(req.email)
     if user:
         token = secrets.token_urlsafe(32)
         create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
         reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
-        send_password_reset_email(user_email=user["email"], reset_url=reset_url)
+        send_password_reset_email_background(background_tasks, user_email=user["email"], reset_url=reset_url)
     return {"message": "If that email is registered, a reset link has been sent."}
 
 
 @app.post("/auth/reset-password")
-async def reset_password(req: PasswordResetConfirm):
-    """
-    Validate reset token, update the password, delete the token,
-    then send a confirmation email.
-    """
+async def reset_password(req: PasswordResetConfirm, background_tasks: BackgroundTasks):  # Add this
     if len(req.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
 
@@ -420,7 +410,7 @@ async def reset_password(req: PasswordResetConfirm):
     if user:
         from datetime import datetime as _dt
         datetime_str = _dt.utcnow().strftime("%d %b %Y at %H:%M UTC")
-        send_password_changed_email(user_email=user["email"], datetime_str=datetime_str)
+        send_password_changed_email_background(background_tasks, user_email=user["email"], datetime_str=datetime_str)
 
     return {"message": "Password updated successfully."}
 
@@ -637,6 +627,14 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+    
+@app.get("/test-email/{email}")
+async def test_email(email: str, background_tasks: BackgroundTasks):
+    """Test endpoint to verify email sending works - remove after testing"""
+    from email_utils import send_welcome_email_background  # You'll add this function
+    
+    send_welcome_email_background(background_tasks, email, "TestUser")
+    return {"message": f"Test email queued for {email}"}
 
 
 # ── GDPR — Account deletion ────────────────────────────────────────────────────
