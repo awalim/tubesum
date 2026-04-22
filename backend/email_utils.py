@@ -88,8 +88,11 @@ WELCOME_HTML = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;">
   <tr>
     <td align="center" style="padding:40px 32px 28px;">
-      <img src="https://tubesum.dehesa.dev/logo_tubesum.png" width="64" height="64" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
-      <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;"><span style="color:#ffffff;">Tube</span><span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span></p>
+      <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
+  <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
+    <span style="color:#ffffff;">Tube</span>
+    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+      </p>
     </td>
   </tr>
   <tr>
@@ -121,8 +124,11 @@ PASSWORD_RESET_HTML = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;">
   <tr>
     <td align="center" style="padding:40px 32px 28px;">
-      <img src="https://tubesum.dehesa.dev/logo_tubesum.png" width="64" height="64" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
-      <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;"><span style="color:#ffffff;">Tube</span><span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span></p>
+      <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
+  <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
+    <span style="color:#ffffff;">Tube</span>
+    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+      </p>
     </td>
   </tr>
   <tr>
@@ -153,8 +159,11 @@ PASSWORD_CHANGED_HTML = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;">
   <tr>
     <td align="center" style="padding:40px 32px 28px;">
-      <img src="https://tubesum.dehesa.dev/logo_tubesum.png" width="64" height="64" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
-      <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;"><span style="color:#ffffff;">Tube</span><span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span></p>
+  <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
+  <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
+    <span style="color:#ffffff;">Tube</span>
+    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+      </p>
     </td>
   </tr>
   <tr>
