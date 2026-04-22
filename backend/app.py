@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -347,7 +347,7 @@ async def root():
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/register")
-async def register(req: RegisterRequest, background_tasks: BackgroundTasks):  # Add this parameter
+async def register(req: RegisterRequest): 
     if len(req.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user = create_user(req.email, req.password)
@@ -357,7 +357,7 @@ async def register(req: RegisterRequest, background_tasks: BackgroundTasks):  # 
 
     # Queue welcome email instead of sending directly
     username = user["email"].split("@", 1)[0]
-    send_welcome_email_background(background_tasks, user_email=user["email"], username=username)
+    send_welcome_email(user_email=user["email"], username=username) 
 
     return {
         "token": token,
@@ -384,13 +384,13 @@ async def logout(authorization: str = Header(default=None)):
 
 
 @app.post("/auth/request-password-reset")
-async def request_password_reset(req: PasswordResetRequest, background_tasks: BackgroundTasks):  # Add this
+async def request_password_reset(req: PasswordResetConfirm):  
     user = get_user_by_email(req.email)
     if user:
         token = secrets.token_urlsafe(32)
         create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
         reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
-        send_password_reset_email_background(background_tasks, user_email=user["email"], reset_url=reset_url)
+        send_password_changed_email(user_email=user["email"], datetime_str=datetime_str)
     return {"message": "If that email is registered, a reset link has been sent."}
 
 
@@ -681,3 +681,13 @@ async def privacy_redirect():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    @app.get("/debug/brevo")
+async def debug_brevo():
+    import os
+    api_key = os.getenv("BREVO_API_KEY", "")
+    return {
+        "has_key": bool(api_key),
+        "key_prefix": api_key[:10] if api_key else None,
+        "key_length": len(api_key),
+    }
