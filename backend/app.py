@@ -2,8 +2,6 @@ from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
-import wikipedia
-from duckduckgo_search import DDGS
 import re
 import os
 import urllib.request
