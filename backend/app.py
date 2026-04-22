@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
+import wikipedia
+from duckduckgo_search import DDGS
 import re
 import os
 import urllib.request
@@ -37,6 +39,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+KNOWN_DOCS = {
+    "LangGraph": "https://langchain-ai.github.io/langgraph/",
+    "LangChain": "https://python.langchain.com/",
+    "OpenAI": "https://platform.openai.com/docs/",
+    "Claude": "https://docs.anthropic.com/",
+    "Groq": "https://console.groq.com/docs/",
+    "DeepSeek": "https://platform.deepseek.com/api-docs/",
+    "Together AI": "https://docs.together.ai/",
+    "OpenRouter": "https://openrouter.ai/docs",
+    # add more as needed
+}
 # ── Lemon Squeezy config ──────────────────────────────────────────────────────
 # Lemon Squeezy is a Merchant of Record — they handle EU VAT, invoicing, taxes.
 # You receive money as a creator. No autónoma registration required to start.
@@ -170,7 +183,16 @@ def extract_transcript(video_id: str) -> str:
     except Exception as e:
         raise Exception(f"Could not get transcript: {str(e)}")
 
+import concurrent.futures
 
+def extract_transcript_with_timeout(video_id: str, timeout: int = 30) -> str:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(extract_transcript, video_id)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            raise Exception("Transcript extraction timed out (proxy or YouTube issue)")
+            
 def clean_transcript(text: str) -> str:
     text = re.sub(r'\b(uh+|um+|you know|like,|so,|basically,|literally)\b', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\s+', ' ', text)
@@ -286,10 +308,17 @@ def normalise_concepts(raw_concepts: list) -> list:
     result = []
     for item in raw_concepts:
         if isinstance(item, dict):
-            result.append({"name": item.get("name",""), "description": item.get("description",""), "url": item.get("url","")})
+            name = item.get("name", "")
+            desc = item.get("description", "")
+            # Use our new enrichment function to get a smart link
+            url = enrich_concept(name) if name else ""
+            result.append({"name": name, "description": desc, "url": url})
         elif isinstance(item, str):
             parts = item.split(":", 1)
-            result.append({"name": parts[0].strip(), "description": parts[1].strip() if len(parts)>1 else item, "url": ""})
+            name = parts[0].strip()
+            desc = parts[1].strip() if len(parts) > 1 else item
+            url = enrich_concept(name) if name else ""
+            result.append({"name": name, "description": desc, "url": url})
     return result
 
 
@@ -469,6 +498,46 @@ def _ls_request(method: str, path: str, body: dict = None):
             detail=f"Lemon Squeezy error {e.code}: {error_body}"
         )
 
+def enrich_concept(concept_name: str) -> str:
+    """
+    Enrich a concept name with a relevant URL.
+    Priority: 1. Local Lookup, 2. Wikipedia, 3. DuckDuckGo Search
+    """
+    # 1. Check the local lookup table first
+    if concept_name in KNOWN_DOCS:
+        return KNOWN_DOCS[concept_name]
+
+    # 2. If not found, try to get the Wikipedia page URL
+    try:
+        # Search for a Wikipedia page that closely matches the concept name
+        search_results = wikipedia.search(concept_name, results=1)
+        if search_results:
+            page = wikipedia.page(search_results[0])
+            return page.url
+    except wikipedia.exceptions.DisambiguationError as e:
+        # If the search term is ambiguous, we can still try to use the first option
+        if e.options:
+            try:
+                page = wikipedia.page(e.options[0])
+                return page.url
+            except:
+                pass
+    except Exception:
+        # If any other Wikipedia error occurs, we just move on.
+        pass
+
+    # 3. Final fallback: perform a DuckDuckGo search
+    try:
+        with DDGS() as ddgs:
+            # Search for the concept and get the first result's URL
+            results = list(ddgs.text(f"{concept_name} official documentation", max_results=1))
+            if results:
+                return results[0]['href']
+    except Exception:
+        pass
+
+    # If all else fails, return an empty string (or None)
+    return ""
 
 @app.post("/payments/create-checkout")
 async def create_checkout(authorization: str = Header(default=None)):
@@ -588,7 +657,7 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
     try:
         video_id = extract_video_id(request.url)
         title = fetch_video_title(video_id)
-        raw_transcript = extract_transcript(video_id)
+        raw_transcript = extract_transcript_with_timeout(video_id, timeout=45)
         full_transcript = clean_transcript(raw_transcript)
         word_count = len(full_transcript.split())
         read_time_minutes = max(1, word_count // 200)
