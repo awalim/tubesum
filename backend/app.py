@@ -162,25 +162,32 @@ def fetch_video_title(video_id: str) -> str:
 
 
 import random
-import youtube_transcript_api
+import re
 
 def extract_transcript(video_id: str) -> str:
     # Choose a random proxy from the list
     proxy_url = random.choice(PROXY_LIST) if PROXY_LIST else None
-    
-    proxies = None
-    if proxy_url:
-        proxies = {
-            "http": proxy_url,
-            "https": proxy_url,
-        }
-    
+
     try:
-        # If we have proxies, use them; otherwise fall back to direct (or Webshare)
-        if proxies:
-            api = YouTubeTranscriptApi(proxies=proxies)
+        if proxy_url:
+            # Parse proxy URL: http://username:password@ip:port
+            match = re.match(r'http://([^:]+):([^@]+)@([^:]+):(\d+)', proxy_url)
+            if match:
+                user, pwd, host, port = match.groups()
+                from youtube_transcript_api.proxies import WebshareProxyConfig
+                api = YouTubeTranscriptApi(
+                    proxy_config=WebshareProxyConfig(
+                        proxy_username=user,
+                        proxy_password=pwd,
+                        proxy_host=host,
+                        proxy_port=int(port),
+                    )
+                )
+            else:
+                # Fallback to direct if URL format is wrong
+                api = YouTubeTranscriptApi()
         else:
-            # Fallback to original Webshare proxy method (if you still have those env vars)
+            # Fallback to original Webshare proxy method (if env vars exist)
             ws_user = os.getenv("WEBSHARE_PROXY_USERNAME")
             ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
             if ws_user and ws_pass:
@@ -209,6 +216,7 @@ def extract_transcript(video_id: str) -> str:
         )
     except Exception as e:
         raise Exception(f"Could not get transcript: {str(e)}")
+        
 import concurrent.futures
 
 def extract_transcript_with_timeout(video_id: str, timeout: int = 30) -> str:
