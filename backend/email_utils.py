@@ -90,8 +90,8 @@ WELCOME_HTML = """\
     <td align="center" style="padding:40px 32px 28px;">
       <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
   <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
-    <span style="color:#ffffff;">Tube</span>
-    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+  <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Tube</span>
+  <span style="color:#ffffff;">Sum</span>
       </p>
     </td>
   </tr>
@@ -126,8 +126,8 @@ PASSWORD_RESET_HTML = """\
     <td align="center" style="padding:40px 32px 28px;">
       <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
   <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
-    <span style="color:#ffffff;">Tube</span>
-    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+  <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Tube</span>
+  <span style="color:#ffffff;">Sum</span>
       </p>
     </td>
   </tr>
@@ -161,8 +161,8 @@ PASSWORD_CHANGED_HTML = """\
     <td align="center" style="padding:40px 32px 28px;">
   <img src="https://tubesum.dehesa.dev/logo_tubesum_avatar.png" width="80" height="80" alt="TubeSum" style="display:block;margin:0 auto 14px;border-radius:50%;">
   <p style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
-    <span style="color:#ffffff;">Tube</span>
-    <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sum</span>
+  <span style="background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Tube</span>
+  <span style="color:#ffffff;">Sum</span>
       </p>
     </td>
   </tr>
