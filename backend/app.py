@@ -37,6 +37,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# List of proxies from your provider (IP:port with credentials)
+# Format: "http://username:password@ip:port"
+PROXY_LIST = [
+    "http://vdftuyqu:gpjaw1z9kkfp@45.39.73.95:5510",
+    "http://vdftuyqu:gpjaw1z9kkfp@92.112.175.43:6316",
+    "http://vdftuyqu:gpjaw1z9kkfp@154.6.115.45:6514",
+    "http://vdftuyqu:gpjaw1z9kkfp@38.154.199.164:5318",
+    "http://vdftuyqu:gpjaw1z9kkfp@45.56.175.103:5777",
+    "http://vdftuyqu:gpjaw1z9kkfp@66.63.180.226:5750",
+    "http://vdftuyqu:gpjaw1z9kkfp@23.27.138.114:6215",
+    "http://vdftuyqu:gpjaw1z9kkfp@94.46.206.16:6789",
+    "http://vdftuyqu:gpjaw1z9kkfp@82.26.218.175:6483",
+    "http://vdftuyqu:gpjaw1z9kkfp@45.151.163.204:5957",
+]
+
 KNOWN_DOCS = {
     "LangGraph": "https://langchain-ai.github.io/langgraph/",
     "LangChain": "https://python.langchain.com/",
@@ -148,22 +163,37 @@ def fetch_video_title(video_id: str) -> str:
         return f"Video {video_id}"
 
 
-def extract_transcript(video_id: str) -> str:
-    try:
-        # Rotating residential proxy — needed because YouTube blocks cloud IPs
-        ws_user = os.getenv("WEBSHARE_PROXY_USERNAME")
-        ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
+import random
 
-        if ws_user and ws_pass:
-            from youtube_transcript_api.proxies import WebshareProxyConfig
-            api = YouTubeTranscriptApi(
-                proxy_config=WebshareProxyConfig(
-                    proxy_username=ws_user,
-                    proxy_password=ws_pass,
-                )
-            )
+def extract_transcript(video_id: str) -> str:
+    # Choose a random proxy from the list
+    proxy_url = random.choice(PROXY_LIST) if PROXY_LIST else None
+    
+    proxies = None
+    if proxy_url:
+        proxies = {
+            "http": proxy_url,
+            "https": proxy_url,
+        }
+    
+    try:
+        # If we have proxies, use them; otherwise fall back to direct (or Webshare)
+        if proxies:
+            api = YouTubeTranscriptApi(proxies=proxies)
         else:
-            api = YouTubeTranscriptApi()
+            # Fallback to original Webshare proxy method (if you still have those env vars)
+            ws_user = os.getenv("WEBSHARE_PROXY_USERNAME")
+            ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
+            if ws_user and ws_pass:
+                from youtube_transcript_api.proxies import WebshareProxyConfig
+                api = YouTubeTranscriptApi(
+                    proxy_config=WebshareProxyConfig(
+                        proxy_username=ws_user,
+                        proxy_password=ws_pass,
+                    )
+                )
+            else:
+                api = YouTubeTranscriptApi()
 
         transcript_list = api.list(video_id)
         try:
@@ -180,7 +210,6 @@ def extract_transcript(video_id: str) -> str:
         )
     except Exception as e:
         raise Exception(f"Could not get transcript: {str(e)}")
-
 import concurrent.futures
 
 def extract_transcript_with_timeout(video_id: str, timeout: int = 30) -> str:
