@@ -9,21 +9,18 @@ blocked.
 Brevo's free tier allows 300 emails/day with no per-recipient restriction once
 the sender domain (dehesa.dev) is verified.
 
-Uses stdlib urllib + json — no extra dependency. Non-blocking via threading.Thread.
+Uses stdlib urllib + json — no extra dependency. Synchronous sending for reliability.
 
 Env var (see .env.example):
     BREVO_API_KEY       your Brevo v3 API key (xkeysib-...)
 
-If BREVO_API_KEY is not set, send_email() logs a warning and no-ops, so local
-dev does not crash.
+If BREVO_API_KEY is not set, send_email() logs a warning and no-ops.
 """
 import os
 import json
 import logging
-import threading
 import urllib.request
 import urllib.error
-from fastapi import BackgroundTasks
 
 logger = logging.getLogger(__name__)
 
@@ -33,75 +30,19 @@ NOREPLY_FROM       = "noreply@dehesa.dev"
 WELCOME_FROM_NAME  = "TubeSum"
 NOREPLY_FROM_NAME  = "TubeSum"
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Low-level transport — Brevo HTTPS API
-# ══════════════════════════════════════════════════════════════════════════════
-
 BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
-
-
-def _send_sync(to: str, subject: str, html_body: str, from_addr: str, from_name: str):
-    api_key = os.getenv("BREVO_API_KEY", "").strip()
-    if not api_key:
-        logger.warning("BREVO_API_KEY not set — skipping email to %s (subject: %s)", to, subject)
-        return
-
-    payload = json.dumps({
-        "sender":      {"name": from_name, "email": from_addr},
-        "to":          [{"email": to}],
-        "subject":     subject,
-        "htmlContent": html_body,
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        BREVO_ENDPOINT,
-        data=payload,
-        method="POST",
-        headers={
-            "api-key":      api_key,
-            "accept":       "application/json",
-            "Content-Type": "application/json",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-            logger.info("Email sent to %s (subject: %s) — Brevo response: %s", to, subject, body)
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8", errors="replace")
-        logger.error("Brevo rejected email to %s (subject: %s): HTTP %s — %s",
-                     to, subject, e.code, err_body)
-    except Exception as e:
-        logger.exception("Failed to send email to %s: %s", to, e)
 
 
 def send_email(to: str, subject: str, html_body: str,
                from_addr: str = NOREPLY_FROM, from_name: str = NOREPLY_FROM_NAME):
     """
-    Send an HTML email asynchronously (fires a background thread).
-    Safe to call from within FastAPI request handlers — does not block the response.
+    Send an HTML email synchronously (blocks until send completes or fails).
+    Returns True on success, False on failure.
     """
-    t = threading.Thread(
-        target=_send_sync,
-        args=(to, subject, html_body, from_addr, from_name),
-        daemon=True,
-    )
-    t.start()
-# Add this function alongside your existing ones:
-
-def send_email_sync(to: str, subject: str, html_body: str,
-                    from_addr: str = NOREPLY_FROM, from_name: str = NOREPLY_FROM_NAME):
-    """
-    Synchronous version - use with BackgroundTasks, NOT direct calls.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    
     api_key = os.getenv("BREVO_API_KEY", "").strip()
     if not api_key:
         logger.warning("BREVO_API_KEY not set — skipping email to %s", to)
+        print(f"⚠️ BREVO_API_KEY missing, email to {to} not sent", flush=True)
         return False
 
     payload = json.dumps({
@@ -126,20 +67,21 @@ def send_email_sync(to: str, subject: str, html_body: str,
         with urllib.request.urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", errors="replace")
             logger.info("✅ Email sent to %s (subject: %s)", to, subject)
-            print(f"✅ Email sent to {to}", flush=True)
+            print(f"✅ Email sent to {to} – {subject}", flush=True)
             return True
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace")
         logger.error("❌ Brevo rejected email to %s: HTTP %s — %s", to, e.code, err_body)
-        print(f"❌ Brevo error for {to}: {e.code} - {err_body}", flush=True)
+        print(f"❌ Brevo error for {to}: {e.code} – {err_body}", flush=True)
         return False
     except Exception as e:
         logger.exception("❌ Failed to send email to %s: %s", to, e)
         print(f"❌ Exception sending to {to}: {e}", flush=True)
         return False
 
+
 # ══════════════════════════════════════════════════════════════════════════════
-# Templates (inner HTML of .email-preview from tubesum_email_templates.html)
+# Templates (unchanged – your existing HTML is perfect)
 # ══════════════════════════════════════════════════════════════════════════════
 
 WELCOME_HTML = """\
@@ -175,7 +117,6 @@ WELCOME_HTML = """\
 </table>
 """
 
-
 PASSWORD_RESET_HTML = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;">
   <tr>
@@ -207,7 +148,6 @@ PASSWORD_RESET_HTML = """\
   </tr>
 </table>
 """
-
 
 PASSWORD_CHANGED_HTML = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;">
@@ -242,48 +182,35 @@ PASSWORD_CHANGED_HTML = """\
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# High-level per-email helpers
+# High-level per-email helpers (called directly from app.py)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Replace your existing helper functions with these:
-
-def send_welcome_email_background(background_tasks: BackgroundTasks, user_email: str, username: str):
-    """Queue welcome email to be sent after response."""
+def send_welcome_email(user_email: str, username: str):
     html = WELCOME_HTML.format(username=username, user_email=user_email)
-    background_tasks.add_task(
-        send_email_sync,
+    send_email(
         to=user_email,
         subject="Welcome to TubeSum ⚡",
         html_body=html,
         from_addr=WELCOME_FROM,
         from_name=WELCOME_FROM_NAME,
     )
-    print(f"📧 Queued welcome email for {user_email}", flush=True)
 
-
-def send_password_reset_email_background(background_tasks: BackgroundTasks, user_email: str, reset_url: str):
-    """Queue password reset email to be sent after response."""
+def send_password_reset_email(user_email: str, reset_url: str):
     html = PASSWORD_RESET_HTML.format(user_email=user_email, reset_url=reset_url)
-    background_tasks.add_task(
-        send_email_sync,
+    send_email(
         to=user_email,
         subject="Reset your TubeSum password",
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
     )
-    print(f"📧 Queued password reset email for {user_email}", flush=True)
 
-
-def send_password_changed_email_background(background_tasks: BackgroundTasks, user_email: str, datetime_str: str):
-    """Queue password changed email to be sent after response."""
+def send_password_changed_email(user_email: str, datetime_str: str):
     html = PASSWORD_CHANGED_HTML.format(user_email=user_email, datetime_str=datetime_str)
-    background_tasks.add_task(
-        send_email_sync,
+    send_email(
         to=user_email,
         subject="Your TubeSum password was changed",
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
     )
-    print(f"📧 Queued password changed email for {user_email}", flush=True)
