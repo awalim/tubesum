@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
 import youtube_transcript_api
-print(f"🔵 youtube_transcript_api version: {youtube_transcript_api.__version__}", flush=True)
+#print(f"🔵 youtube_transcript_api version: {youtube_transcript_api.__version__}", flush=True)
 import re
 import os
 import urllib.request
@@ -164,7 +164,6 @@ def fetch_video_title(video_id: str) -> str:
 
 
 def extract_transcript(video_id: str) -> str:
-    """Fetch YouTube transcript without any proxy (direct connection)."""
     try:
         api = YouTubeTranscriptApi()
         transcript_list = api.list(video_id)
@@ -178,7 +177,7 @@ def extract_transcript(video_id: str) -> str:
         transcript_data = transcript.fetch()
         return " ".join(segment.text for segment in transcript_data)
     except Exception as e:
-        raise Exception(f"Could not get transcript: {str(e)}"))
+        raise Exception(f"Could not get transcript: {str(e)}")
         
 import concurrent.futures
 
