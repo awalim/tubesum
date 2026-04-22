@@ -163,46 +163,10 @@ def fetch_video_title(video_id: str) -> str:
         return f"Video {video_id}"
 
 
-import random
-import re
-
 def extract_transcript(video_id: str) -> str:
-    # Choose a random proxy from the list
-    proxy_url = random.choice(PROXY_LIST) if PROXY_LIST else None
-
+    """Fetch YouTube transcript without any proxy (direct connection)."""
     try:
-        if proxy_url:
-            # Parse proxy URL: http://username:password@ip:port
-            match = re.match(r'http://([^:]+):([^@]+)@([^:]+):(\d+)', proxy_url)
-            if match:
-                user, pwd, host, port = match.groups()
-                from youtube_transcript_api.proxies import WebshareProxyConfig
-                api = YouTubeTranscriptApi(
-                    proxy_config=WebshareProxyConfig(
-                        proxy_username=user,
-                        proxy_password=pwd,
-                        proxy_host=host,
-                        proxy_port=int(port),
-                    )
-                )
-            else:
-                # Fallback to direct if URL format is wrong
-                api = YouTubeTranscriptApi()
-        else:
-            # Fallback to original Webshare proxy method (if env vars exist)
-            ws_user = os.getenv("WEBSHARE_PROXY_USERNAME")
-            ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
-            if ws_user and ws_pass:
-                from youtube_transcript_api.proxies import WebshareProxyConfig
-                api = YouTubeTranscriptApi(
-                    proxy_config=WebshareProxyConfig(
-                        proxy_username=ws_user,
-                        proxy_password=ws_pass,
-                    )
-                )
-            else:
-                api = YouTubeTranscriptApi()
-
+        api = YouTubeTranscriptApi()
         transcript_list = api.list(video_id)
         try:
             transcript = transcript_list.find_transcript(['en'])
@@ -212,12 +176,9 @@ def extract_transcript(video_id: str) -> str:
                 raise Exception("No transcripts available")
             transcript = transcripts[0]
         transcript_data = transcript.fetch()
-        return " ".join(
-            segment.text if hasattr(segment, "text") else segment["text"]
-            for segment in transcript_data
-        )
+        return " ".join(segment.text for segment in transcript_data)
     except Exception as e:
-        raise Exception(f"Could not get transcript: {str(e)}")
+        raise Exception(f"Could not get transcript: {str(e)}"))
         
 import concurrent.futures
 
