@@ -626,14 +626,6 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-    
-@app.get("/test-email/{email}")
-async def test_email(email: str, background_tasks: BackgroundTasks):
-    """Test endpoint to verify email sending works - remove after testing"""
-    from email_utils import send_welcome_email_background  # You'll add this function
-    
-    send_welcome_email_background(background_tasks, email, "TestUser")
-    return {"message": f"Test email queued for {email}"}
 
 
 # ── GDPR — Account deletion ────────────────────────────────────────────────────
