@@ -246,13 +246,20 @@ Return valid JSON with exactly these keys:
 {{
   "summary": "3-4 paragraph markdown summary using **bold** for important terms",
   "steps": ["Plain action text — no 'Step N:' prefix, no numbering", ...],
-  "concepts": [{{"name": "ExactName", "description": "One sentence explanation.", "url": "https://official-docs-or-empty"}}, ...],
+  "concepts": [
+    {{
+      "name": "ExactName",
+      "description": "One sentence explaining the concept IN THE CONTEXT OF THIS VIDEO.",
+      "url": "Only include if you are certain it's the official or Wikipedia page. Otherwise leave empty string."
+    }}
+  ],
   "verdict": "One honest sentence: should someone watch this and why?"
 }}
 
 Rules:
 - steps: plain action sentences. NO numbering. NO 'Step N:' prefix.
-- concepts: 4-8 items. Official doc URLs for well-known tools. Empty string if unknown.
+- concepts: 4-8 items. Descriptions must be contextual to the video.
+- url: only for well-known people, places, or technical terms. Empty string if unsure.
 - Language: {language}
 
 Partial summaries:
@@ -268,13 +275,20 @@ Return valid JSON with exactly these keys:
 {{
   "summary": "3-4 paragraph markdown summary using **bold** for important terms",
   "steps": ["Plain action text — no 'Step N:' prefix, no numbering", ...],
-  "concepts": [{{"name": "ExactName", "description": "One sentence explanation.", "url": "https://official-docs-or-empty"}}, ...],
+  "concepts": [
+    {{
+      "name": "ExactName",
+      "description": "One sentence explaining the concept IN THE CONTEXT OF THIS VIDEO.",
+      "url": "Only include if you are certain it's the official docs or Wikipedia page. Otherwise leave empty string."
+    }}
+  ],
   "verdict": "One honest sentence: should someone watch this and why?"
 }}
 
 Rules:
 - steps: plain action sentences. NO numbering. NO 'Step N:' prefix.
-- concepts: 4-8 items. Official doc URLs for well-known tools.
+- concepts: 4-8 items. Descriptions must be contextual to the video.
+- url: only for well-known people, places, or technical terms (e.g., Wikipedia, official docs). Empty string if unsure.
 - Language: {language}
 
 Transcript:
@@ -499,44 +513,7 @@ def _ls_request(method: str, path: str, body: dict = None):
         )
 
 def enrich_concept(concept_name: str) -> str:
-    """
-    Enrich a concept name with a relevant URL.
-    Priority: 1. Local Lookup, 2. Wikipedia, 3. DuckDuckGo Search
-    """
-    # 1. Check the local lookup table first
-    if concept_name in KNOWN_DOCS:
-        return KNOWN_DOCS[concept_name]
-
-    # 2. If not found, try to get the Wikipedia page URL
-    try:
-        # Search for a Wikipedia page that closely matches the concept name
-        search_results = wikipedia.search(concept_name, results=1)
-        if search_results:
-            page = wikipedia.page(search_results[0])
-            return page.url
-    except wikipedia.exceptions.DisambiguationError as e:
-        # If the search term is ambiguous, we can still try to use the first option
-        if e.options:
-            try:
-                page = wikipedia.page(e.options[0])
-                return page.url
-            except:
-                pass
-    except Exception:
-        # If any other Wikipedia error occurs, we just move on.
-        pass
-
-    # 3. Final fallback: perform a DuckDuckGo search
-    try:
-        with DDGS() as ddgs:
-            # Search for the concept and get the first result's URL
-            results = list(ddgs.text(f"{concept_name} official documentation", max_results=1))
-            if results:
-                return results[0]['href']
-    except Exception:
-        pass
-
-    # If all else fails, return an empty string (or None)
+    # No automatic search – rely on AI's provided URL
     return ""
 
 @app.post("/payments/create-checkout")
