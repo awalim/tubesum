@@ -347,7 +347,7 @@ async def root():
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/register")
-async def register(req: RegisterRequest): 
+async def register(req: RegisterRequest):   # ← remove BackgroundTasks
     if len(req.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user = create_user(req.email, req.password)
@@ -355,15 +355,14 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=409, detail="Email already registered")
     token = create_session(user["id"])
 
-    # Queue welcome email instead of sending directly
     username = user["email"].split("@", 1)[0]
-    send_welcome_email(user_email=user["email"], username=username) 
+    send_welcome_email(user_email=user["email"], username=username)   # ← direct call
 
     return {
         "token": token,
         "user": {"email": user["email"], "tier": user["tier"]}
     }
-
+    
 @app.post("/auth/login")
 async def login(req: LoginRequest):
     user = verify_user(req.email, req.password)
@@ -395,7 +394,7 @@ async def request_password_reset(req: PasswordResetConfirm):
 
 
 @app.post("/auth/reset-password")
-async def reset_password(req: PasswordResetConfirm, background_tasks: BackgroundTasks):  # Add this
+async def reset_password(req: PasswordResetConfirm):
     if len(req.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
 
@@ -410,7 +409,7 @@ async def reset_password(req: PasswordResetConfirm, background_tasks: Background
     if user:
         from datetime import datetime as _dt
         datetime_str = _dt.utcnow().strftime("%d %b %Y at %H:%M UTC")
-        send_password_changed_email_background(background_tasks, user_email=user["email"], datetime_str=datetime_str)
+        send_password_changed_email(user_email=user["email"], datetime_str=datetime_str)
 
     return {"message": "Password updated successfully."}
 
@@ -683,11 +682,4 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
     
     @app.get("/debug/brevo")
-async def debug_brevo():
-    import os
-    api_key = os.getenv("BREVO_API_KEY", "")
-    return {
-        "has_key": bool(api_key),
-        "key_prefix": api_key[:10] if api_key else None,
-        "key_length": len(api_key),
-    }
+
