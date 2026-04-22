@@ -567,19 +567,22 @@ async def billing_portal(authorization: str = Header(default=None)):
 
 @app.post("/transcript", response_model=TranscriptResponse)
 async def get_transcript(request: VideoRequest, authorization: str = Header(default=None)):
+    print(f"🔵 /transcript called with URL: {request.url}", flush=True)
+    print(f"🔵 Provider: {request.provider}, Model: {request.model}, Has API key: {bool(request.api_key)}", flush=True)
+    
     # ── Auth & usage gate ──────────────────────────────────────────────────────
     user = get_current_user(authorization)
     if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Please create a free account to use TubeSum. Free plan: 3 summaries/day."
-        )
+        print(f"🔴 No authenticated user", flush=True)
+        raise HTTPException(status_code=401, detail="Please create a free account...")
+    print(f"🔵 User: {user['email']}, Tier: {user['tier']}", flush=True)
     allowed, reason = can_use(user)
     if not allowed:
-        raise HTTPException(
-            status_code=429,
-            detail=reason  # "Daily limit reached (3 summaries/day on free plan)"
-        )
+        print(f"🔴 Usage limit reached: {reason}", flush=True)
+        raise HTTPException(status_code=429, detail=reason)
+    print(f"🔵 Usage allowed, proceeding...", flush=True)
+    
+    # Then continue with transcript extraction...
 
     # ── Core processing ────────────────────────────────────────────────────────
     try:
