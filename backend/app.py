@@ -162,6 +162,8 @@ def fetch_video_title(video_id: str) -> str:
 
 
 import random
+import youtube_transcript_api
+print(f"🔵 youtube_transcript_api version: {youtube_transcript_api.__version__}", flush=True)
 
 def extract_transcript(video_id: str) -> str:
     # Choose a random proxy from the list
