@@ -466,14 +466,17 @@
 
     <div class="footer">
         <p>TubeSum · Extract YouTube transcripts instantly · AI summaries with any provider</p>
-        <p style="margin-top:0.5rem;">Made with ⚡ for tutorial learners | 🇺🇸 English | 🇪🇸 Español</p>
+        <p style="margin-top:0.5rem;">Made for tutorial learners | 🇺🇸 English | 🇪🇸 Español</p>
         <p style="margin-top:0.75rem;font-size:0.8rem;">
             Built by <a href="https://dehesa.dev" target="_blank" style="color:var(--primary);">Dehesa Studio</a>
             &nbsp;·&nbsp;
             <a href="https://dehesa.dev/privacy" target="_blank" style="color:var(--text-muted);">Privacy Policy</a>
             &nbsp;·&nbsp;
             <span id="deleteAccountFooter" style="display:none;">
-                <a href="#" onclick="confirmDeleteAccount();return false;" style="color:var(--error);font-size:0.75rem;">Delete my account</a>
+    <a href="#" onclick="confirmDeleteAccount();return false;" style="color:var(--error);font-size:0.75rem;">Delete my account</a>
+</span>
+&nbsp;·&nbsp;
+<a href="https://buymeacoffee.com/awalim" target="_blank" style="color:var(--text-muted);font-size:0.75rem;">☕ Buy me a coffee</a>
             </span>
         </p>
     </div>
@@ -503,6 +506,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedLang) { document.querySelector(`input[value="${savedLang}"]`).checked = true; currentLanguage = savedLang; updateLanguageHint(); }
     selectProvider(localStorage.getItem('ts_provider') || 'openai', true);
     loadHistory();
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('token');
+    if (resetToken) {
+    openResetPasswordModal(resetToken);
+    window.history.replaceState({}, '', '/');
+}
 });
 
 document.querySelectorAll('input[name="language"]').forEach(r => {
@@ -933,7 +942,91 @@ function switchAuthTab(tab) {
     document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
     document.getElementById('authError').textContent = '';
 }
+// Forgot password
+function openForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').style.display = 'flex';
+    document.getElementById('resetMessage').textContent = '';
+}
+function closeForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').style.display = 'none';
+}
+async function requestPasswordReset() {
+    const email = document.getElementById('resetEmail').value.trim();
+    const msg = document.getElementById('resetMessage');
+    if (!email) {
+        msg.textContent = 'Please enter your email';
+        msg.style.color = 'var(--error)';
+        return;
+    }
+    try {
+        const r = await fetch(`${API_URL}/auth/request-password-reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await r.json();
+        if (r.ok) {
+            msg.textContent = 'If that email is registered, a reset link has been sent.';
+            msg.style.color = 'var(--success)';
+            setTimeout(() => closeForgotPasswordModal(), 3000);
+        } else {
+            msg.textContent = data.detail || 'Something went wrong';
+            msg.style.color = 'var(--error)';
+        }
+    } catch(e) {
+        msg.textContent = 'Connection error';
+        msg.style.color = 'var(--error)';
+    }
+}
 
+// Reset password with token
+let currentResetToken = null;
+function openResetPasswordModal(token) {
+    currentResetToken = token;
+    document.getElementById('resetPasswordModal').style.display = 'flex';
+    document.getElementById('resetPwMessage').textContent = '';
+}
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').style.display = 'none';
+    currentResetToken = null;
+}
+async function submitNewPassword() {
+    const newPw = document.getElementById('newPw').value;
+    const confirm = document.getElementById('confirmPw').value;
+    const msg = document.getElementById('resetPwMessage');
+    if (newPw.length < 8) {
+        msg.textContent = 'Password must be at least 8 characters';
+        msg.style.color = 'var(--error)';
+        return;
+    }
+    if (newPw !== confirm) {
+        msg.textContent = 'Passwords do not match';
+        msg.style.color = 'var(--error)';
+        return;
+    }
+    try {
+        const r = await fetch(`${API_URL}/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: currentResetToken, new_password: newPw })
+        });
+        const data = await r.json();
+        if (r.ok) {
+            msg.textContent = 'Password updated! You can now log in.';
+            msg.style.color = 'var(--success)';
+            setTimeout(() => {
+                closeResetPasswordModal();
+                openAuthModal('login');
+            }, 2000);
+        } else {
+            msg.textContent = data.detail || 'Invalid or expired token';
+            msg.style.color = 'var(--error)';
+        }
+    } catch(e) {
+        msg.textContent = 'Connection error';
+        msg.style.color = 'var(--error)';
+    }
+}
 async function doLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pw    = document.getElementById('loginPw').value;
@@ -1063,6 +1156,8 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
         <input id="loginEmail" type="email"    placeholder="Email"    class="field-input">
         <input id="loginPw"    type="password" placeholder="Password" class="field-input">
         <button onclick="doLogin()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;font-size:1rem;cursor:pointer;font-weight:600;">Log in</button>
+        <div style="text-align:center; margin-top:0.5rem;">
+    <a href="#" onclick="openForgotPasswordModal();return false;" style="color:var(--primary); font-size:0.8rem;">Forgot password?</a>
     </div>
     <div id="registerForm" style="flex-direction:column;gap:0.75rem;display:none;">
         <input id="regEmail" type="email"    placeholder="Email"           class="field-input">
@@ -1074,7 +1169,17 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
     <p id="authError" style="color:var(--error);font-size:0.85rem;margin-top:0.75rem;text-align:center;"></p>
 </div>
 </div>
-
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(420px,90vw);position:relative;">
+    <button onclick="closeForgotPasswordModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">×</button>
+    <h2 style="text-align:center;margin-bottom:1.5rem;">Reset password</h2>
+    <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">Enter your email and we'll send you a reset link.</p>
+    <input type="email" id="resetEmail" placeholder="Email" class="field-input" style="margin-bottom:1rem;">
+    <button onclick="requestPasswordReset()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;width:100%;font-weight:600;cursor:pointer;">Send reset link</button>
+    <p id="resetMessage" style="margin-top:0.75rem;font-size:0.85rem;text-align:center;"></p>
+</div>
+</div>
 <!-- ── Upgrade Modal ── -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(480px,90vw);position:relative;text-align:center;">
@@ -1097,21 +1202,6 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
 </div>
 </div>
 
-<!-- ── Buy Me a Coffee button ── -->
-<div style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;border-radius:1rem;overflow:hidden;box-shadow:0 10px 20px rgba(189,95,255,0.35);">
-    <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js"
-        data-name="bmc-button"
-        data-slug="awalim"
-        data-color="#BD5FFF"
-        data-emoji=""
-        data-font="Lato"
-        data-text="Buy me a coffee"
-        data-outline-color="#000000"
-        data-font-color="#ffffff"
-        data-coffee-color="#FFDD00">
-    </script>
-</div>
-
 <style>
 .auth-tab { background:transparent; color:var(--text-muted); transition:all 0.2s; }
 .auth-tab.active { background:var(--primary); color:white; }
@@ -1121,5 +1211,16 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
 .auth-btn.upgrade { background:linear-gradient(135deg,var(--primary),#ec4899); color:white; }
 #authModal.visible, #upgradeModal.visible { display:flex !important; }
 </style>
+<!-- Reset Password Modal (appears when token in URL) -->
+<div id="resetPasswordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(420px,90vw);position:relative;">
+    <button onclick="closeResetPasswordModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">×</button>
+    <h2 style="text-align:center;margin-bottom:1rem;">Set new password</h2>
+    <input type="password" id="newPw" placeholder="New password (min 8 chars)" class="field-input" style="margin-bottom:0.75rem;">
+    <input type="password" id="confirmPw" placeholder="Confirm password" class="field-input" style="margin-bottom:1rem;">
+    <button onclick="submitNewPassword()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;width:100%;font-weight:600;cursor:pointer;">Update password</button>
+    <p id="resetPwMessage" style="margin-top:0.75rem;font-size:0.85rem;text-align:center;"></p>
+</div>
+</div>
 </body>
 </html>
