@@ -35,6 +35,7 @@ BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 
 def send_email(to: str, subject: str, html_body: str,
                from_addr: str = NOREPLY_FROM, from_name: str = NOREPLY_FROM_NAME):
+        print(f"🔵 send_email called for {to}", flush=True)
     """
     Send an HTML email synchronously (blocks until send completes or fails).
     Returns True on success, False on failure.
@@ -205,6 +206,7 @@ def send_welcome_email(user_email: str, username: str):
     )
 
 def send_password_reset_email(user_email: str, reset_url: str):
+    print(f"🔵 send_password_reset_email called for {user_email} with reset_url {reset_url}", flush=True)
     html = PASSWORD_RESET_HTML.format(user_email=user_email, reset_url=reset_url)
     send_email(
         to=user_email,
@@ -212,7 +214,7 @@ def send_password_reset_email(user_email: str, reset_url: str):
         html_body=html,
         from_addr=NOREPLY_FROM,
         from_name=NOREPLY_FROM_NAME,
-    )
+            )
 
 def send_password_changed_email(user_email: str, datetime_str: str):
     html = PASSWORD_CHANGED_HTML.format(user_email=user_email, datetime_str=datetime_str)

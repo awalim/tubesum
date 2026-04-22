@@ -383,15 +383,21 @@ async def logout(authorization: str = Header(default=None)):
 
 
 @app.post("/auth/request-password-reset")
-async def request_password_reset(req: PasswordResetRequest):   # note: PasswordResetRequest, not PasswordResetConfirm
+async def request_password_reset(req: PasswordResetRequest):
+    print(f"🔵 PASSWORD RESET REQUEST for {req.email}", flush=True)
     user = get_user_by_email(req.email)
     if user:
+        print(f"🔵 User found: {user['email']}", flush=True)
         token = secrets.token_urlsafe(32)
         create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
         reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
-        send_password_reset_email(user_email=user["email"], reset_url=reset_url)   # correct function
+        print(f"🔵 Reset URL: {reset_url}", flush=True)
+        print(f"🔵 Calling send_password_reset_email...", flush=True)
+        send_password_reset_email(user_email=user["email"], reset_url=reset_url)
+        print(f"🔵 send_password_reset_email returned", flush=True)
+    else:
+        print(f"🔵 No user found for {req.email}", flush=True)
     return {"message": "If that email is registered, a reset link has been sent."}
-
 
 @app.post("/auth/reset-password")
 async def reset_password(req: PasswordResetConfirm):
