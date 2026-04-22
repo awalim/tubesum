@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from youtube_transcript_api import YouTubeTranscriptApi
+import youtube_transcript_api
+print(f"🔵 youtube_transcript_api version: {youtube_transcript_api.__version__}", flush=True)
 import re
 import os
 import urllib.request
