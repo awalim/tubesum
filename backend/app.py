@@ -674,6 +674,15 @@ async def privacy_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="https://dehesa.dev/privacy")
 
+@app.post("/admin/clear-users")
+async def clear_users():
+    from database import get_conn
+    with get_conn() as conn:
+        conn.execute("DELETE FROM password_reset_tokens")
+        conn.execute("DELETE FROM sessions")
+        conn.execute("DELETE FROM usage")
+        conn.execute("DELETE FROM users")
+    return {"message": "All users, sessions, tokens, and usage deleted."}
 
 if __name__ == "__main__":
     import uvicorn
