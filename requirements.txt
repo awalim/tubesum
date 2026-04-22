@@ -1,4 +1,4 @@
-youtube-transcript-api==1.2.3
+youtube-transcript-api==1.2.4
 fastapi==0.128.0
 uvicorn[standard]==0.29.0
 openai>=1.0.0

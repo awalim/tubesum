@@ -37,20 +37,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# List of proxies from your provider (IP:port with credentials)
-# Format: "http://username:password@ip:port"
-PROXY_LIST = [
-    "http://vdftuyqu:gpjaw1z9kkfp@45.39.73.95:5510",
-    "http://vdftuyqu:gpjaw1z9kkfp@92.112.175.43:6316",
-    "http://vdftuyqu:gpjaw1z9kkfp@154.6.115.45:6514",
-    "http://vdftuyqu:gpjaw1z9kkfp@38.154.199.164:5318",
-    "http://vdftuyqu:gpjaw1z9kkfp@45.56.175.103:5777",
-    "http://vdftuyqu:gpjaw1z9kkfp@66.63.180.226:5750",
-    "http://vdftuyqu:gpjaw1z9kkfp@23.27.138.114:6215",
-    "http://vdftuyqu:gpjaw1z9kkfp@94.46.206.16:6789",
-    "http://vdftuyqu:gpjaw1z9kkfp@82.26.218.175:6483",
-    "http://vdftuyqu:gpjaw1z9kkfp@45.151.163.204:5957",
-]
+import json
+import os
+
+PROXY_LIST = json.loads(os.getenv("PROXY_LIST", "[]"))
+if not PROXY_LIST:
+    # Fallback to single proxy from old Webshare env vars (optional)
+    ws_user = os.getenv("WEBSHARE_PROXY_USERNAME")
+    ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
+    ws_host = os.getenv("WEBSHARE_PROXY_HOST", "")
+    ws_port = os.getenv("WEBSHARE_PROXY_PORT", "")
+    if ws_user and ws_pass and ws_host and ws_port:
+        PROXY_LIST = [f"http://{ws_user}:{ws_pass}@{ws_host}:{ws_port}"]
 
 KNOWN_DOCS = {
     "LangGraph": "https://langchain-ai.github.io/langgraph/",
