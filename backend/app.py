@@ -383,13 +383,13 @@ async def logout(authorization: str = Header(default=None)):
 
 
 @app.post("/auth/request-password-reset")
-async def request_password_reset(req: PasswordResetConfirm):  
+async def request_password_reset(req: PasswordResetRequest):   # note: PasswordResetRequest, not PasswordResetConfirm
     user = get_user_by_email(req.email)
     if user:
         token = secrets.token_urlsafe(32)
         create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
         reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
-        send_password_changed_email(user_email=user["email"], datetime_str=datetime_str)
+        send_password_reset_email(user_email=user["email"], reset_url=reset_url)   # correct function
     return {"message": "If that email is registered, a reset link has been sent."}
 
 
@@ -680,6 +680,3 @@ async def privacy_redirect():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    
-    @app.get("/debug/brevo")
-
