@@ -225,6 +225,7 @@ def extract_transcript(video_id: str) -> str:
             'writesubtitles': True,
             'subtitleslangs': ['en'],
             'socket_timeout': 10,
+            'cookiesfrombrowser': ('firefox',),
         }
         
         proxy = get_next_proxy() if PROXY_LIST else None
