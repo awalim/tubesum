@@ -38,9 +38,19 @@ from email_utils import (
 
 app = FastAPI(title="TubeSum API")
 
+PRODUCTION_ORIGINS = [
+    "https://tubesum.com",
+    "https://www.tubesum.com",
+    "https://dehesa.dev",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else PRODUCTION_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -116,6 +126,93 @@ KNOWN_DOCS = {
     "RAG": "https://python.langchain.com/docs/concepts/#retrieval",
     "Vector Database": "https://python.langchain.com/docs/concepts/#vector-stores",
     "Embedding": "https://platform.openai.com/docs/embeddings",
+    "Reinforcement Learning": "https://en.wikipedia.org/wiki/Reinforcement_learning",
+    "Machine Learning": "https://en.wikipedia.org/wiki/Machine_learning",
+    "AGI": "https://en.wikipedia.org/wiki/Artificial_general_intelligence",
+    "Artificial General Intelligence": "https://en.wikipedia.org/wiki/Artificial_general_intelligence",
+    "Neural Network": "https://en.wikipedia.org/wiki/Artificial_neural_network",
+    "Deep Learning": "https://en.wikipedia.org/wiki/Deep_learning",
+    "Transformers": "https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)",
+    "Attention Mechanism": "https://en.wikipedia.org/wiki/Attention_(machine_learning)",
+    "Fine Tuning": "https://platform.openai.com/docs/guides/fine-tuning",
+    "Prompt Engineering": "https://en.wikipedia.org/wiki/Prompt_engineering",
+    "Data Annotation": "https://en.wikipedia.org/wiki/Labeled_data",
+    "Transfer Learning": "https://en.wikipedia.org/wiki/Transfer_learning",
+    "Computer Vision": "https://en.wikipedia.org/wiki/Computer_vision",
+    "Natural Language Processing": "https://en.wikipedia.org/wiki/Natural_language_processing",
+    "NLP": "https://en.wikipedia.org/wiki/Natural_language_processing",
+    "Generative AI": "https://en.wikipedia.org/wiki/Generative_artificial_intelligence",
+    "Large Language Model": "https://en.wikipedia.org/wiki/Large_language_model",
+    "OpenAI API": "https://platform.openai.com/docs/",
+    "ChatGPT": "https://openai.com/index/chatgpt/",
+    "GPT-4": "https://openai.com/index/gpt-4/",
+    "GPT-3": "https://en.wikipedia.org/wiki/GPT-3",
+    "LLaMA": "https://en.wikipedia.org/wiki/LLaMA_(language_model)",
+    "Gemini": "https://deepmind.google/gemini",
+    "Stable Diffusion": "https://en.wikipedia.org/wiki/Stable_diffusion",
+    "Midjourney": "https://docs.midjourney.com/",
+    "LangSmith": "https://docs.smith.langchain.com/",
+    "Pinecone": "https://docs.pinecone.io/",
+    "Weaviate": "https://weaviate.io/developers/weaviate",
+    "Chroma": "https://docs.trychroma.com/",
+    "FAISS": "https://github.com/facebookresearch/faiss",
+    "Hugging Face": "https://huggingface.co/docs",
+    "Weights & Biases": "https://docs.wandb.ai/",
+    "LangServe": "https://python.langchain.com/docs/langserve/",
+    "LangChain Expression Language": "https://python.langchain.com/docs/concepts/#langchain-expression-language-lcel",
+    "Retrieval-Augmented Generation": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+    "RAG": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+    "Chain of Thought": "https://en.wikipedia.org/wiki/Chain-of-thought_prompting",
+    "Few-Shot Learning": "https://en.wikipedia.org/wiki/Few-shot_learning_(machine_learning)",
+    "Zero-Shot Learning": "https://en.wikipedia.org/wiki/Zero-shot_learning",
+    "TensorFlow": "https://www.tensorflow.org/api_docs/",
+    "PyTorch": "https://pytorch.org/docs/",
+    "JAX": "https://jax.readthedocs.io/en/latest/",
+    "scikit-learn": "https://scikit-learn.org/stable/",
+    "pandas": "https://pandas.pydata.org/docs/",
+    "NumPy": "https://numpy.org/docstable/",
+    "LangChain": "https://python.langchain.com/",
+    "CrewAI": "https://docs.crewai.com/",
+    "AutoGen": "https://microsoft.github.io/autogen/",
+    "LlamaIndex": "https://docs.llamaindex.ai/",
+    "Haystack": "https://docs.haystack.deepset.ai/",
+    "Job Displacement": "https://en.wikipedia.org/wiki/Technological_unemployment",
+    "Data Centers": "https://en.wikipedia.org/wiki/Data_center",
+    "Environmental Impact": "https://en.wikipedia.org/wiki/Environmental_impact_of_information_and_communications_technology",
+    "Transparency": "https://en.wikipedia.org/wiki/Transparency_(behavior)",
+    "Accountability": "https://en.wikipedia.org/wiki/Accountability",
+    "Ethical AI": "https://en.wikipedia.org/wiki/Ethics_of_artificial_intelligence",
+    "AI Safety": "https://en.wikipedia.org/wiki/Artificial_intelligence_safety",
+    "Sam Altman": "https://en.wikipedia.org/wiki/Sam_Altman",
+    "Elon Musk": "https://en.wikipedia.org/wiki/Elon_Musk",
+    "Ilya Sutskever": "https://en.wikipedia.org/wiki/Ilya_Sutskever",
+    "Timnit Gebru": "https://en.wikipedia.org/wiki/Timnit_Gebru",
+    "Karen Hao": "https://karenhao.com",
+    "Silicon Valley": "https://en.wikipedia.org/wiki/Silicon_Valley",
+    "Scaling Laws": "https://en.wikipedia.org/wiki/Neural_scaling_law",
+    "Data Annotation": "https://en.wikipedia.org/wiki/Labeled_data",
+    "Labor Exploitation": "https://en.wikipedia.org/wiki/Exploitation_of_labour",
+    "Intellectual Property": "https://en.wikipedia.org/wiki/Intellectual_property",
+    "AI Regulation": "https://en.wikipedia.org/wiki/Regulation_of_artificial_intelligence",
+    # General concepts
+    "Jevons Paradox": "https://en.wikipedia.org/wiki/Jevons_paradox",
+    "Personal Brand": "https://en.wikipedia.org/wiki/Personal_branding",
+    "Entrepreneurial Thinking": "https://en.wikipedia.org/wiki/Entrepreneurship",
+    "AI Infrastructure": "https://en.wikipedia.org/wiki/Computing_infrastructure",
+    "Universal Basic Income": "https://en.wikipedia.org/wiki/Universal_basic_income",
+    "Technological Unemployment": "https://en.wikipedia.org/wiki/Technological_unemployment",
+    "Job Displacement": "https://en.wikipedia.org/wiki/Technological_unemployment",
+    "Future of Work": "https://en.wikipedia.org/wiki/Future_of_work",
+    "Six-Step Process": "https://en.wikipedia.org/wiki/Entrepreneurship",
+    "Bottom-Up Economy": "https://en.wikipedia.org/wiki/Economic_planning",
+    "Personal Storytelling": "https://en.wikipedia.org/wiki/Personal_narrative",
+    "Content Creation": "https://en.wikipedia.org/wiki/Content_creator",
+    "YouTube Economy": "https://en.wikipedia.org/wiki/YouTube",
+    # Spanish terms
+    "Inteligencia Artificial": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+    "Desplazamiento laboral": "https://en.wikipedia.org/wiki/Technological_unemployment",
+    "Emprendimiento": "https://en.wikipedia.org/wiki/Entrepreneurship",
+    "Marca personal": "https://en.wikipedia.org/wiki/Personal_branding",
 }
 # ── Lemon Squeezy config ──────────────────────────────────────────────────────
 # Lemon Squeezy is a Merchant of Record — they handle EU VAT, invoicing, taxes.
@@ -218,12 +315,17 @@ def fetch_video_title(video_id: str) -> str:
 
 
 def extract_transcript(video_id: str) -> str:
-    if 'YouTubeTranscriptApi' in globals():
-        try:
-            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
-            return ' '.join([item['text'] for item in transcript])
-        except Exception as e:
-            pass
+    try:
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
+        transcript = transcript_list.find_transcript(['en'])
+        if not transcript:
+            transcript = transcript_list.find_generated_transcript(['en'])
+        if transcript:
+            fetched = transcript.fetch()
+            return ' '.join([item.text for item in fetched.snippets])
+    except Exception:
+        pass
     
     last_error = None
     
@@ -279,7 +381,7 @@ def clean_transcript(text: str) -> str:
     return text.strip()
 
 
-def chunk_text(text: str, max_words: int = 800) -> list:
+def chunk_text(text: str, max_words: int = 1000) -> list:
     words = text.split()
     return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
 
@@ -316,63 +418,83 @@ Return a short, dense paragraph (3-5 sentences). Ignore filler and repetition.
 Transcript excerpt:
 {text}"""
 
-FINAL_PROMPT = """You are an expert at summarizing YouTube videos into clear, structured content.
+FINAL_PROMPT = """Summarize this video into structured JSON.
 
 Video title: "{title}"
 
-IMPORTANT: Auto-generated transcripts often mis-spell product names. Use the video title to correct them.
-
-Return valid JSON with exactly these keys:
+Return JSON:
 {{
-  "summary": "3-4 paragraph markdown summary using **bold** for important terms",
-  "steps": ["Plain action text — no 'Step N:' prefix, no numbering", ...],
+  "summary": "3-4 paragraph markdown summary with **bold** for key terms",
+  "steps": ["Plain action text — no numbering", ...],
   "concepts": [
-    {{
-      "name": "ExactName",
-      "description": "One sentence explaining the concept IN THE CONTEXT OF THIS VIDEO.",
-      "url": "Only include if you are certain it's the official or Wikipedia page. Otherwise leave empty string."
-    }}
+    {{"name": "Term", "description": "One sentence explaining THIS SPECIFIC TERM as discussed in the video", "url": "Wikipedia or official docs URL"}}
   ],
-  "verdict": "One honest sentence: should someone watch this and why?"
+  "verdict": "One honest sentence: watch or skip?"
 }}
 
 Rules:
-- steps: plain action sentences. NO numbering. NO 'Step N:' prefix.
-- concepts: 4-8 items. Descriptions must be contextual to the video.
-- url: only for well-known people, places, or technical terms. Empty string if unsure.
+- concepts: 4-8 items. Description MUST explain what this term MEANS IN THE VIDEO, not a dictionary definition.
+- url: Wikipedia or official docs. Empty string if no good source.
 - Language: {language}
 
-Partial summaries:
+Transcript excerpts:
 {text}"""
 
-SINGLE_PROMPT = """You are an expert at summarizing YouTube videos into clear, structured content.
+SINGLE_PROMPT = """Analyze this transcript and create a structured summary.
+
+TRANSCRIPT:
+{text}
 
 Video title: "{title}"
 
-IMPORTANT: Auto-generated transcripts often mis-spell product names. Use the video title to correct them.
+Generate JSON with these EXACT keys:
 
-Return valid JSON with exactly these keys:
 {{
-  "summary": "3-4 paragraph markdown summary using **bold** for important terms",
-  "steps": ["Plain action text — no 'Step N:' prefix, no numbering", ...],
-  "concepts": [
-    {{
-      "name": "ExactName",
-      "description": "One sentence explaining the concept IN THE CONTEXT OF THIS VIDEO.",
-      "url": "Only include if you are certain it's the official docs or Wikipedia page. Otherwise leave empty string."
-    }}
+  "summary": "Multi-paragraph markdown summary with **bold** for key terms from the transcript.",
+  "steps": [
+    {{"idea": "The surface claim or commonly held belief", "reality": "What the transcript actually reveals"}},
+    ...
   ],
-  "verdict": "One honest sentence: should someone watch this and why?"
+  "concepts": [
+    {{"name": "Term", "description": "What this term MEANS based on the TRANSCRIPT with specific examples", "url": "Wikipedia or official docs URL"}}
+  ],
+  "verdict": "First, state WHAT THE VIDEO IS ABOUT in 1-2 sentences. Then give the recommendation in 1 sentence. Format: 'This video is about [essence]. [Recommendation].'"
 }}
 
-Rules:
-- steps: plain action sentences. NO numbering. NO 'Step N:' prefix.
-- concepts: 4-8 items. Descriptions must be contextual to the video.
-- url: only for well-known people, places, or technical terms (e.g., Wikipedia, official docs). Empty string if unsure.
+IMPORTANT:
+- verdict: Start with 'This video is about...' to give context, not just 'Yes' or 'No'
 - Language: {language}
+- concepts: URL is REQUIRED if Wikipedia or docs exist. Use en.wikipedia.org/wiki/Page_Name format.
+- summary: Use **bold** for key terms
+- steps: 4-8 items, "idea" vs "reality" format"""
 
-Transcript:
-{text}"""
+FINAL_PROMPT = """Analyze these transcript excerpts and create a structured summary.
+
+TRANSCRIPT:
+{text}
+
+Video title: "{title}"
+
+Generate JSON with these EXACT keys:
+
+{{
+  "summary": "Multi-paragraph markdown summary with **bold** for key terms from the transcript.",
+  "steps": [
+    {{"idea": "The surface claim or commonly held belief", "reality": "What the transcript actually reveals"}},
+    ...
+  ],
+  "concepts": [
+    {{"name": "Term", "description": "What this term MEANS based on the TRANSCRIPT with specific examples", "url": "Wikipedia or official docs URL"}}
+  ],
+  "verdict": "First, state WHAT THE VIDEO IS ABOUT in 1-2 sentences. Then give the recommendation in 1 sentence. Format: 'This video is about [essence]. [Recommendation].'"
+}}
+
+IMPORTANT:
+- verdict: Start with 'This video is about...' to give context, not just 'Yes' or 'No'
+- Language: {language}
+- concepts: URL is REQUIRED if Wikipedia or docs exist. Use en.wikipedia.org/wiki/Page_Name format.
+- summary: Use **bold** for key terms
+- steps: 4-8 items, "idea" vs "reality" format"""
 
 # ── Summarization engine ───────────────────────────────────────────────────────
 
@@ -380,8 +502,8 @@ def call_chat(client, model, system, user, json_mode=False):
     kwargs = dict(
         model=model,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        temperature=0.3,
-        max_tokens=2000 if json_mode else 400,
+        temperature=0.5,  # Higher for more creative, contextual output
+        max_tokens=4000 if json_mode else 600,
     )
     if json_mode:
         try:
@@ -417,9 +539,12 @@ def normalise_concepts(raw_concepts: list) -> list:
 
 
 def clean_steps(raw_steps: list) -> list:
+    """Clean steps. Supports old string format or new {idea, reality} format."""
     cleaned = []
     for step in raw_steps:
-        if isinstance(step, str):
+        if isinstance(step, dict) and "idea" in step and "reality" in step:
+            cleaned.append({"idea": step["idea"], "reality": step["reality"]})
+        elif isinstance(step, str):
             step = re.sub(r'^(Step\s*\d+\s*[:.\-–]\s*|\d+\s*[.):\-–]\s*)', '', step, flags=re.IGNORECASE).strip()
             if step:
                 cleaned.append(step)
@@ -431,31 +556,79 @@ def run_summarization(provider, api_key, model, full_transcript, language, title
 
     if provider == "claude":
         chunks = chunk_text(full_transcript, max_words=800)
+        transcript_for_summary = full_transcript[:15000]
+        lang_instruction = "Respond in the same language as the transcript." if language else "Return only valid JSON."
         if len(chunks) <= 2:
             raw = summarize_with_claude(api_key, effective_model,
-                SINGLE_PROMPT.format(text=full_transcript[:12000], language=language, title=title),
-                "You are a structured content summarizer. Return only valid JSON.")
+                SINGLE_PROMPT.format(text=transcript_for_summary, language=language, title=title),
+                f"You are a structured content summarizer. {lang_instruction}")
+            result = safe_parse_json(raw)
         else:
             chunk_summaries = [summarize_with_claude(api_key, effective_model, CHUNK_PROMPT.format(text=c), "You are a concise summarizer.") for c in chunks]
             raw = summarize_with_claude(api_key, effective_model,
                 FINAL_PROMPT.format(text="\n\n".join(chunk_summaries), language=language, title=title),
-                "You are a structured content summarizer. Return only valid JSON.")
-        return safe_parse_json(raw)
+                f"You are a structured content summarizer. {lang_instruction}")
+            result = safe_parse_json(raw)
+        result["concepts"] = enrich_concepts_batch(effective_model, chunks if len(chunks) > 2 else [transcript_for_summary], result.get("concepts", []), title, api_key)
+        return result
 
     client = build_client(provider, api_key)
     chunks = chunk_text(full_transcript, max_words=800)
+    transcript_for_summary = full_transcript[:15000]
+    lang_instruction = "Respond in the same language as the transcript." if language else "Always return valid JSON."
+    
     if len(chunks) <= 2:
         raw = call_chat(client, effective_model,
-            "You are a structured content summarizer. Always return valid JSON.",
-            SINGLE_PROMPT.format(text=full_transcript[:12000], language=language, title=title),
+            f"You are a structured content summarizer. {lang_instruction}",
+            SINGLE_PROMPT.format(text=transcript_for_summary, language=language, title=title),
             json_mode=True)
+        result = safe_parse_json(raw)
     else:
         chunk_summaries = [call_chat(client, effective_model, "You are a concise summarizer.", CHUNK_PROMPT.format(text=c)) for c in chunks]
         raw = call_chat(client, effective_model,
-            "You are a structured content summarizer. Always return valid JSON.",
+            f"You are a structured content summarizer. {lang_instruction}",
             FINAL_PROMPT.format(text="\n\n".join(chunk_summaries), language=language, title=title),
             json_mode=True)
-    return safe_parse_json(raw)
+        result = safe_parse_json(raw)
+    result["concepts"] = enrich_concepts_batch(effective_model, chunks if len(chunks) > 2 else [transcript_for_summary], result.get("concepts", []), title, api_key)
+    return result
+
+
+def enrich_concepts_batch(model, transcript_chunks, existing_concepts, title, api_key):
+    """Enrich concepts with descriptions using transcript context."""
+    unique_names = [c["name"] if isinstance(c, dict) else str(c) for c in existing_concepts]
+    unique_names = list(dict.fromkeys(unique_names))[:10]
+    if not unique_names:
+        return []
+    
+    combined = "\n\n".join(transcript_chunks)[:6000]
+    
+    if api_key:
+        client = build_client("openai", api_key)
+        enrich_prompt = (
+            "Based on the TRANSCRIPT below, write descriptions for these concepts.\n\n"
+            "TRANSCRIPT:\n" + combined[:4000] + "\n\n"
+            "Concepts to describe: " + ", ".join(unique_names) + "\n\n"
+            'Output JSON: [{"name":"X","description":"what this means from transcript context","url":"URL or empty"}]\n\n'
+            "IMPORTANT: Write descriptions based on WHAT THE TRANSCRIPT SAYS about each term, not generic definitions."
+        )
+        try:
+            msg = client.chat.completions.create(model=model, messages=[{"role": "user", "content": enrich_prompt}], max_tokens=800, temperature=0.3)
+            raw = msg.choices[0].message.content.strip()
+            enriched = safe_parse_json(raw)
+            if isinstance(enriched, list) and len(enriched) > 0:
+                for item in enriched:
+                    if isinstance(item, dict):
+                        name = item.get("name", "")
+                        if not item.get("url"):
+                            item["url"] = enrich_concept(name) or enrich_concept(name.lower()) or ""
+                        if not item.get("description") and name in unique_names:
+                            item["description"] = f"Concept from this transcript about {title}"
+                return enriched
+        except Exception as e:
+            print(f"Enrichment error: {e}")
+    
+    return [{"name": n, "description": f"Mentioned in this video", "url": enrich_concept(n) or enrich_concept(n.lower()) or ""} for n in unique_names]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -592,15 +765,41 @@ def _ls_request(method: str, path: str, body: dict = None):
             detail=f"Lemon Squeezy error {e.code}: {error_body}"
         )
 
-def enrich_concept(concept_name: str) -> str:
+def enrich_concept(concept_name: str, video_title: str = "") -> str:
+    """Get Wikipedia URL for a concept. Checks KNOWN_DOCS first, then Wikipedia API search."""
     if not concept_name:
         return ""
+    
     name_lower = concept_name.strip()
+    
+    # 1. Check KNOWN_DOCS (exact and case-insensitive)
     if name_lower in KNOWN_DOCS:
         return KNOWN_DOCS[name_lower]
     for key in KNOWN_DOCS:
         if key.lower() == name_lower.lower():
             return KNOWN_DOCS[key]
+    
+    # 2. Search Wikipedia API
+    wiki_url = wikipedia_search(name_lower)
+    if wiki_url:
+        return wiki_url
+    
+    return ""
+
+
+def wikipedia_search(term: str) -> str:
+    """Search Wikipedia API for a term and return the best matching URL."""
+    try:
+        import urllib.parse
+        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={urllib.parse.quote(term)}&limit=1&format=json"
+        req = urllib.request.Request(search_url, headers={"User-Agent": "TubeSum/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            if data and len(data) >= 2 and data[1]:
+                title = data[1][0]
+                return f"https://en.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}"
+    except Exception:
+        pass
     return ""
 
 @app.post("/payments/create-checkout")

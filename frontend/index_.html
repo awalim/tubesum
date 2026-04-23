@@ -53,6 +53,7 @@
         .summarize-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(139,92,246,0.3); }
         .summarize-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+        /* Language */
         .language-selector {
             display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;
             padding: 1rem; background: var(--bg-input); border-radius: 0.75rem;
@@ -60,12 +61,14 @@
         .language-option { display: flex; align-items: center; gap: 0.5rem; }
         .language-radio { width: 1.2rem; height: 1.2rem; accent-color: var(--primary); }
 
+        /* ── AI Config Section ── */
         .ai-config-section { background: var(--bg-input); border-radius: 1rem; padding: 1.5rem; margin-top: 1rem; }
         .ai-config-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .ai-config-title { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-weight: 500; }
         .ai-config-content { margin-top: 1.5rem; display: none; }
         .ai-config-content.visible { display: block; }
 
+        /* Provider grid */
         .provider-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 0.6rem; margin-bottom: 1.5rem;
@@ -85,6 +88,7 @@
         .tag-paid { background: rgba(59,130,246,0.2); color: var(--info); }
         .tag-local { background: rgba(245,158,11,0.2); color: var(--warning); }
 
+        /* Model + key row */
         .provider-settings { display: flex; flex-direction: column; gap: 0.75rem; }
         .field-row { display: flex; flex-direction: column; gap: 0.4rem; }
         .field-row label { font-size: 0.85rem; color: var(--text-muted); }
@@ -113,6 +117,7 @@
         .provider-hint { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; }
         .provider-hint a { color: var(--primary); }
 
+        /* Video info banner */
         .video-info-banner {
             display: none; background: var(--bg-input); border: 1px solid var(--border);
             border-left: 4px solid var(--primary); border-radius: 1rem;
@@ -131,6 +136,7 @@
         }
         .verdict-box .label { color: var(--primary); font-weight: 700; margin-right: 0.4rem; }
 
+        /* Video preview */
         .video-preview {
             margin-bottom: 2rem; border-radius: 1rem; overflow: hidden;
             aspect-ratio: 16/9; background: var(--bg-input); display: none;
@@ -138,6 +144,7 @@
         .video-preview.visible { display: block; }
         .video-preview iframe { width: 100%; height: 100%; border: none; }
 
+        /* Loading */
         .loading { display: none; text-align: center; padding: 3rem; }
         .loading.visible { display: block; }
         .spinner {
@@ -147,6 +154,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Results */
         .results { display: none; }
         .results.visible { display: block; }
         .tabs {
@@ -187,6 +195,7 @@
             color: var(--text); white-space: pre-wrap; padding-right: 120px;
         }
 
+        /* Summary markdown */
         .md-content p { margin-bottom: 0.75rem; }
         .md-content strong { color: var(--primary); font-weight: 700; }
         .md-content em { color: var(--warning); font-style: italic; }
@@ -194,6 +203,7 @@
         .md-content li { margin-bottom: 0.4rem; }
         .md-content h3 { color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin: 1rem 0 0.5rem; }
 
+        /* ── Steps: clean numbered list, text inline with number ── */
         .steps-list {
             list-style: decimal;
             padding-left: 1.4rem;
@@ -207,6 +217,7 @@
             color: var(--text);
         }
 
+        /* ── Concepts: card grid, no bullet points ── */
         .concepts-grid {
             display: flex;
             flex-direction: column;
@@ -249,6 +260,7 @@
             line-height: 1.5;
         }
 
+        /* History */
         .history-card {
             background: var(--bg-card); border-radius: 1.5rem; padding: 1.5rem;
             border: 1px solid var(--border); position: sticky; top: 2rem;
@@ -416,6 +428,7 @@
                 <div id="summaryText" class="md-content"></div>
             </div>
 
+            <!-- Steps: plain <ol>, no markdown wrapping per item -->
             <div id="steps" class="tab-content">
                 <button class="copy-btn" onclick="copySteps(this)">📋 Copy</button>
                 <button class="download-btn" onclick="downloadSteps()">⬇ Download</button>
@@ -423,6 +436,7 @@
                 <ol id="stepsList" class="steps-list"></ol>
             </div>
 
+            <!-- Concepts: card grid, no bullet points -->
             <div id="concepts" class="tab-content">
                 <button class="copy-btn" onclick="copyConcepts(this)">📋 Copy</button>
                 <button class="download-btn" onclick="downloadConcepts()">⬇ Download</button>
@@ -459,10 +473,11 @@
             <a href="https://dehesa.dev/privacy" target="_blank" style="color:var(--text-muted);">Privacy Policy</a>
             &nbsp;·&nbsp;
             <span id="deleteAccountFooter" style="display:none;">
-                <a href="#" onclick="confirmDeleteAccount();return false;" style="color:var(--error);font-size:0.75rem;">Delete my account</a>
+    <a href="#" onclick="confirmDeleteAccount();return false;" style="color:var(--error);font-size:0.75rem;">Delete my account</a>
+</span>
+&nbsp;·&nbsp;
+<a href="https://buymeacoffee.com/awalim" target="_blank" style="color:var(--text-muted);font-size:0.75rem;">☕ Buy me a coffee</a>
             </span>
-            &nbsp;·&nbsp;
-            <a href="https://buymeacoffee.com/awalim" target="_blank" style="color:var(--text-muted);font-size:0.75rem;">☕ Buy me a coffee</a>
         </p>
     </div>
 </div>
@@ -491,6 +506,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedLang) { document.querySelector(`input[value="${savedLang}"]`).checked = true; currentLanguage = savedLang; updateLanguageHint(); }
     selectProvider(localStorage.getItem('ts_provider') || 'openai', true);
     loadHistory();
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('token');
+    if (resetToken) {
+    openResetPasswordModal(resetToken);
+    window.history.replaceState({}, '', '/');
+}
 });
 
 document.querySelectorAll('input[name="language"]').forEach(r => {
@@ -606,6 +627,7 @@ window.downloadContent = function (id, filename) {
     const a = document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'})); a.download=filename; a.click();
 };
 
+// Steps-specific copy/download (plain text, no HTML)
 window.copySteps = async function (btn) {
     const items = Array.from(document.querySelectorAll('#stepsList li')).map((li,i)=>`${i+1}. ${li.textContent.trim()}`).join('\n');
     try { await navigator.clipboard.writeText(items); const orig=btn.innerHTML; btn.innerHTML='✓ Copied!'; btn.classList.add('copied'); setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('copied');},2000); } catch(e){}
@@ -615,6 +637,7 @@ window.downloadSteps = function () {
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([items],{type:'text/plain'})); a.download='steps.txt'; a.click();
 };
 
+// Concepts-specific copy/download
 window.copyConcepts = async function (btn) {
     const items = Array.from(document.querySelectorAll('.concept-card')).map(c=>{
         const name = c.querySelector('.concept-name')?.textContent.trim()||'';
@@ -674,6 +697,7 @@ window.clearHistory = function () { if(confirm('Clear all history?')){historyIte
 
 // ── Display results ───────────────────────────────────────────────────────────
 function displayResults(data) {
+    // Banner
     document.getElementById('videoTitleDisplay').textContent = data.title || '';
     if (data.word_count) document.getElementById('statWords').textContent = `📄 ${data.word_count.toLocaleString()} words`;
     if (data.read_time_minutes) document.getElementById('statReadTime').textContent = `⏱ ~${data.read_time_minutes} min read`;
@@ -682,36 +706,36 @@ function displayResults(data) {
     else vb.style.display = 'none';
     document.getElementById('videoInfoBanner').classList.add('visible');
 
+    // Transcript — plain text, no markdown
     document.getElementById('transcriptText').textContent = data.transcript || '';
 
     const hasAI = data.summary || (data.steps && data.steps.length) || (data.concepts && data.concepts.length);
     const noAIMsg = `<p style="color:var(--text-muted);padding:2rem;text-align:center;">✨ ${currentLanguage==='es'?'Configura un proveedor de IA para generar resúmenes':'Configure an AI provider to generate summaries'}</p>`;
 
     if (hasAI) {
+        // Summary — full markdown render
         document.getElementById('summaryText').innerHTML = renderMarkdown(data.summary || '');
 
+        // ── Steps: plain <li> text, NO marked.parse ──
         const stepsList = document.getElementById('stepsList');
         stepsList.innerHTML = '';
         if (data.steps && data.steps.length) {
             data.steps.forEach(step => {
                 const li = document.createElement('li');
-                if (typeof step === 'object' && step.idea && step.reality) {
-                    li.innerHTML = `<div class="step-idea" style="color:var(--text-muted);font-size:0.9rem;margin-bottom:0.3rem;"><strong>The idea:</strong> ${escHtml(step.idea)}</div><div class="step-reality"><strong style="color:var(--primary);">The reality:</strong> ${escHtml(step.reality)}</div>`;
-                } else if (typeof step === 'string') {
-                    li.textContent = step;
-                } else {
-                    li.textContent = step.text || step.name || String(step);
-                }
+                // Plain text only — avoid marked wrapping in <p> inside <li>
+                li.textContent = typeof step === 'string' ? step : (step.text || String(step));
                 stepsList.appendChild(li);
             });
         } else {
             stepsList.innerHTML = '<li style="color:var(--text-muted);list-style:none;padding:1rem 0;">No step-by-step process found for this video.</li>';
         }
 
+        // ── Concepts: card grid with name, description, optional doc link ──
         const grid = document.getElementById('conceptsGrid');
         grid.innerHTML = '';
         if (data.concepts && data.concepts.length) {
             data.concepts.forEach(concept => {
+                // Handle both new dict format {name, description, url} and legacy string
                 let name, desc, url;
                 if (typeof concept === 'object') {
                     name = concept.name || '';
@@ -723,6 +747,7 @@ function displayResults(data) {
                     desc = parts[1]?.trim() || '';
                     url  = '';
                 }
+
                 const card = document.createElement('div');
                 card.className = 'concept-card';
                 card.innerHTML = `
@@ -797,13 +822,14 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 // AUTH & PAYWALL SYSTEM
 // ══════════════════════════════════════════════════════════════════════════════
 
-let currentUser = null;
-const FREE_DAILY_LIMIT = 3;
+let currentUser = null; // {email, tier, used_today, remaining, daily_limit}
 
+// ── Load saved session on startup ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('ts_token');
     if (token) await refreshUser(token);
     renderAuthBar();
+    // Handle Stripe redirect params
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgraded') === 'true') {
         await refreshUser(localStorage.getItem('ts_token'));
@@ -814,7 +840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showError('Payment cancelled — you are still on the free plan.');
         window.history.replaceState({}, '', '/');
     }
-});
+}, { once: true });
 
 async function refreshUser(token) {
     if (!token) return;
@@ -822,7 +848,7 @@ async function refreshUser(token) {
         const r = await fetch(`${API_URL}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (r.ok) { currentUser = await r.json(); }
         else { localStorage.removeItem('ts_token'); currentUser = null; }
-    } catch(e) {}
+    } catch(e) { /* network down */ }
 }
 
 function renderAuthBar() {
@@ -831,10 +857,15 @@ function renderAuthBar() {
     if (!bar) return;
     if (currentUser) {
         const isPro = currentUser.tier === 'pro';
-        const usageText = isPro ? '✨ Pro — unlimited' : `${currentUser.remaining ?? (3 - (currentUser.used_today||0))} / 3 summaries left today`;
+        const usageText = isPro
+            ? '✨ Pro — unlimited'
+            : `${currentUser.remaining ?? (3 - (currentUser.used_today||0))} / 3 summaries left today`;
         bar.innerHTML = `
             <span style="color:var(--text-muted);font-size:0.85rem;">${usageText}</span>
-            ${isPro ? `<button onclick="openBillingPortal()" class="auth-btn secondary">Manage billing</button>` : `<button onclick="openUpgradeModal()" class="auth-btn upgrade">⚡ Go Pro €4/mo</button>`}
+            ${isPro
+                ? `<button onclick="openBillingPortal()" class="auth-btn secondary">Manage billing</button>`
+                : `<button onclick="openUpgradeModal()" class="auth-btn upgrade">⚡ Go Pro €4/mo</button>`
+            }
             <span style="color:var(--text-muted);font-size:0.85rem;">${currentUser.email}</span>
             <button onclick="doLogout()" class="auth-btn secondary">Log out</button>
         `;
@@ -849,13 +880,16 @@ function renderAuthBar() {
     }
 }
 
+// ── Intercept summarize button to enforce auth ─────────────────────────────────
 const _origSummarizeClick = document.getElementById('summarizeBtn').onclick;
 document.getElementById('summarizeBtn').addEventListener('click', function(e) {
+    // If not logged in, open auth modal instead
     if (!currentUser) {
         e.stopImmediatePropagation();
         openAuthModal('register');
         return false;
     }
+    // If free user hit limit, open upgrade modal
     if (currentUser.tier !== 'pro' && currentUser.remaining !== null && currentUser.remaining <= 0) {
         e.stopImmediatePropagation();
         openUpgradeModal();
@@ -863,11 +897,13 @@ document.getElementById('summarizeBtn').addEventListener('click', function(e) {
     }
 }, true);
 
+// Override the fetch in the summarize handler to include auth header
 const _origFetch = window.fetch;
 window._authedFetch = async function(url, opts = {}) {
     const token = localStorage.getItem('ts_token');
     if (token) opts.headers = { ...(opts.headers||{}), 'Authorization': `Bearer ${token}` };
     const resp = await _origFetch(url, opts);
+    // After a successful summary, refresh usage count
     if (resp.ok && url.includes('/transcript')) {
         await refreshUser(localStorage.getItem('ts_token'));
         renderAuthBar();
@@ -875,16 +911,22 @@ window._authedFetch = async function(url, opts = {}) {
     return resp;
 };
 
+// Patch the summarize click to use authed fetch
 (function patchSummarizeBtn() {
     const btn = document.getElementById('summarizeBtn');
+    // Clone button listeners aren't accessible, so we proxy fetch at call site
+    // The fetch call in the click handler uses window.fetch — we redirect it
+    // by temporarily swapping window.fetch during execution
     btn.addEventListener('click', () => {
         if (!currentUser) return;
+        // Swap fetch for one request cycle
         const orig = window.fetch;
         window.fetch = window._authedFetch;
         setTimeout(() => { window.fetch = orig; }, 5000);
     }, true);
 }());
 
+// ── Auth modal ─────────────────────────────────────────────────────────────────
 function openAuthModal(tab = 'login') {
     const m = document.getElementById('authModal');
     m.classList.add('visible');
@@ -900,10 +942,7 @@ function switchAuthTab(tab) {
     document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
     document.getElementById('authError').textContent = '';
 }
-window.openAuthModal = openAuthModal;
-window.closeAuthModal = closeAuthModal;
-window.switchAuthTab = switchAuthTab;
-
+// Forgot password
 function openForgotPasswordModal() {
     document.getElementById('forgotPasswordModal').style.display = 'flex';
     document.getElementById('resetMessage').textContent = '';
@@ -911,8 +950,6 @@ function openForgotPasswordModal() {
 function closeForgotPasswordModal() {
     document.getElementById('forgotPasswordModal').style.display = 'none';
 }
-window.openForgotPasswordModal = openForgotPasswordModal;
-window.closeForgotPasswordModal = closeForgotPasswordModal;
 async function requestPasswordReset() {
     const email = document.getElementById('resetEmail').value.trim();
     const msg = document.getElementById('resetMessage');
@@ -942,6 +979,7 @@ async function requestPasswordReset() {
     }
 }
 
+// Reset password with token
 let currentResetToken = null;
 function openResetPasswordModal(token) {
     currentResetToken = token;
@@ -952,8 +990,6 @@ function closeResetPasswordModal() {
     document.getElementById('resetPasswordModal').style.display = 'none';
     currentResetToken = null;
 }
-window.openResetPasswordModal = openResetPasswordModal;
-window.closeResetPasswordModal = closeResetPasswordModal;
 async function submitNewPassword() {
     const newPw = document.getElementById('newPw').value;
     const confirm = document.getElementById('confirmPw').value;
@@ -991,7 +1027,6 @@ async function submitNewPassword() {
         msg.style.color = 'var(--error)';
     }
 }
-
 async function doLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pw    = document.getElementById('loginPw').value;
@@ -1056,6 +1091,7 @@ async function confirmDeleteAccount() {
             showSuccess('Your account has been permanently deleted.');
             return;
         }
+        // Surface the real reason so we stop guessing.
         let detail = `HTTP ${r.status}`;
         try { const j = await r.json(); if (j && j.detail) detail = j.detail; } catch(_) {}
         if (r.status === 401) {
@@ -1071,14 +1107,14 @@ async function confirmDeleteAccount() {
     }
 }
 
+// ── Upgrade modal ──────────────────────────────────────────────────────────────
+const FREE_DAILY_LIMIT = 3;
 function openUpgradeModal() {
     document.getElementById('upgradeModal').classList.add('visible');
 }
 function closeUpgradeModal() {
     document.getElementById('upgradeModal').classList.remove('visible');
 }
-window.openUpgradeModal = openUpgradeModal;
-window.closeUpgradeModal = closeUpgradeModal;
 async function startCheckout() {
     const btn = document.getElementById('checkoutBtn');
     btn.textContent = 'Redirecting…'; btn.disabled = true;
@@ -1121,8 +1157,7 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
         <input id="loginPw"    type="password" placeholder="Password" class="field-input">
         <button onclick="doLogin()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;font-size:1rem;cursor:pointer;font-weight:600;">Log in</button>
         <div style="text-align:center; margin-top:0.5rem;">
-            <a href="#" onclick="openForgotPasswordModal();return false;" style="color:var(--primary); font-size:0.8rem;">Forgot password?</a>
-        </div>
+    <a href="#" onclick="openForgotPasswordModal();return false;" style="color:var(--primary); font-size:0.8rem;">Forgot password?</a>
     </div>
     <div id="registerForm" style="flex-direction:column;gap:0.75rem;display:none;">
         <input id="regEmail" type="email"    placeholder="Email"           class="field-input">
@@ -1134,7 +1169,6 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
     <p id="authError" style="color:var(--error);font-size:0.85rem;margin-top:0.75rem;text-align:center;"></p>
 </div>
 </div>
-
 <!-- Forgot Password Modal -->
 <div id="forgotPasswordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(420px,90vw);position:relative;">
@@ -1146,19 +1180,6 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
     <p id="resetMessage" style="margin-top:0.75rem;font-size:0.85rem;text-align:center;"></p>
 </div>
 </div>
-
-<!-- Reset Password Modal -->
-<div id="resetPasswordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
-<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(420px,90vw);position:relative;">
-    <button onclick="closeResetPasswordModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">×</button>
-    <h2 style="text-align:center;margin-bottom:1rem;">Set new password</h2>
-    <input type="password" id="newPw" placeholder="New password (min 8 chars)" class="field-input" style="margin-bottom:0.75rem;">
-    <input type="password" id="confirmPw" placeholder="Confirm password" class="field-input" style="margin-bottom:1rem;">
-    <button onclick="submitNewPassword()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;width:100%;font-weight:600;cursor:pointer;">Update password</button>
-    <p id="resetPwMessage" style="margin-top:0.75rem;font-size:0.85rem;text-align:center;"></p>
-</div>
-</div>
-
 <!-- ── Upgrade Modal ── -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
 <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(480px,90vw);position:relative;text-align:center;">
@@ -1190,23 +1211,33 @@ document.querySelector('.header').insertAdjacentHTML('beforeend', `
 .auth-btn.upgrade { background:linear-gradient(135deg,var(--primary),#ec4899); color:white; }
 #authModal.visible, #upgradeModal.visible { display:flex !important; }
 </style>
-
+<!-- Reset Password Modal (appears when token in URL) -->
+<div id="resetPasswordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:1.5rem;padding:2rem;width:min(420px,90vw);position:relative;">
+    <button onclick="closeResetPasswordModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">×</button>
+    <h2 style="text-align:center;margin-bottom:1rem;">Set new password</h2>
+    <input type="password" id="newPw" placeholder="New password (min 8 chars)" class="field-input" style="margin-bottom:0.75rem;">
+    <input type="password" id="confirmPw" placeholder="Confirm password" class="field-input" style="margin-bottom:1rem;">
+    <button onclick="submitNewPassword()" style="background:var(--primary);color:white;border:none;border-radius:0.75rem;padding:0.8rem;width:100%;font-weight:600;cursor:pointer;">Update password</button>
+    <p id="resetPwMessage" style="margin-top:0.75rem;font-size:0.85rem;text-align:center;"></p>
+</div>
+</div>
 <script>
-// Ensure token detection works (for reset links)
-(function() {
+  (function() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     if (token) {
-        console.log('Reset token detected:', token);
-        setTimeout(() => {
-            if (typeof openResetPasswordModal === 'function') {
-                openResetPasswordModal(token);
-            } else {
-                alert('Reset token found but modal not ready.');
-            }
-        }, 500);
+      console.log('Reset token detected:', token);
+      // Wait a moment for DOM to be ready
+      setTimeout(() => {
+        if (typeof openResetPasswordModal === 'function') {
+          openResetPasswordModal(token);
+        } else {
+          alert('Reset token found but modal function missing. Please contact support.');
+        }
+      }, 500);
     }
-})();
+  })();
 </script>
 </body>
 </html>
