@@ -894,6 +894,9 @@ function switchAuthTab(tab) {
     document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
     document.getElementById('authError').textContent = '';
 }
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.switchAuthTab = switchAuthTab;
 
 function openForgotPasswordModal() {
     document.getElementById('forgotPasswordModal').style.display = 'flex';
@@ -902,6 +905,8 @@ function openForgotPasswordModal() {
 function closeForgotPasswordModal() {
     document.getElementById('forgotPasswordModal').style.display = 'none';
 }
+window.openForgotPasswordModal = openForgotPasswordModal;
+window.closeForgotPasswordModal = closeForgotPasswordModal;
 async function requestPasswordReset() {
     const email = document.getElementById('resetEmail').value.trim();
     const msg = document.getElementById('resetMessage');
@@ -941,6 +946,8 @@ function closeResetPasswordModal() {
     document.getElementById('resetPasswordModal').style.display = 'none';
     currentResetToken = null;
 }
+window.openResetPasswordModal = openResetPasswordModal;
+window.closeResetPasswordModal = closeResetPasswordModal;
 async function submitNewPassword() {
     const newPw = document.getElementById('newPw').value;
     const confirm = document.getElementById('confirmPw').value;
@@ -1064,6 +1071,8 @@ function openUpgradeModal() {
 function closeUpgradeModal() {
     document.getElementById('upgradeModal').classList.remove('visible');
 }
+window.openUpgradeModal = openUpgradeModal;
+window.closeUpgradeModal = closeUpgradeModal;
 async function startCheckout() {
     const btn = document.getElementById('checkoutBtn');
     btn.textContent = 'Redirecting…'; btn.disabled = true;

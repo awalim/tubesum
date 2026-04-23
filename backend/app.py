@@ -1,9 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from youtube_transcript_api import YouTubeTranscriptApi
-import youtube_transcript_api
-#print(f"🔵 youtube_transcript_api version: {youtube_transcript_api.__version__}", flush=True)
 import re
 import os
 import urllib.request
@@ -14,6 +11,11 @@ import json
 import hmac
 import hashlib
 import secrets
+
+try:
+    from yt_dlp import YoutubeDL as ytdl
+except ImportError:
+    raise Exception("yt-dlp not installed. Run: pip install yt-dlp")
 
 load_dotenv()
 
@@ -41,6 +43,7 @@ app.add_middleware(
 
 import json
 import os
+import random
 
 PROXY_LIST = json.loads(os.getenv("PROXY_LIST", "[]"))
 if not PROXY_LIST:
@@ -52,6 +55,19 @@ if not PROXY_LIST:
     if ws_user and ws_pass and ws_host and ws_port:
         PROXY_LIST = [f"http://{ws_user}:{ws_pass}@{ws_host}:{ws_port}"]
 
+_proxy_index = 0
+
+def get_next_proxy() -> str:
+    global _proxy_index
+    if not PROXY_LIST:
+        return None
+    proxy = PROXY_LIST[_proxy_index % len(PROXY_LIST)]
+    _proxy_index += 1
+    return proxy
+
+# Shuffle proxy list on startup for rotation variety
+random.shuffle(PROXY_LIST)
+
 KNOWN_DOCS = {
     "LangGraph": "https://langchain-ai.github.io/langgraph/",
     "LangChain": "https://python.langchain.com/",
@@ -61,7 +77,40 @@ KNOWN_DOCS = {
     "DeepSeek": "https://platform.deepseek.com/api-docs/",
     "Together AI": "https://docs.together.ai/",
     "OpenRouter": "https://openrouter.ai/docs",
-    # add more as needed
+    "React": "https://react.dev/",
+    "Vue": "https://vuejs.org/guide/",
+    "Angular": "https://angular.io/docs",
+    "JavaScript": "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+    "TypeScript": "https://www.typescriptlang.org/docs/",
+    "Python": "https://docs.python.org/3/",
+    "Node.js": "https://nodejs.org/docs/",
+    "Django": "https://docs.djangoproject.com/",
+    "Flask": "https://flask.palletsprojects.com/",
+    "FastAPI": "https://fastapi.tiangolo.com/",
+    "Docker": "https://docs.docker.com/",
+    "Kubernetes": "https://kubernetes.io/docs/",
+    "AWS": "https://docs.aws.amazon.com/",
+    "GCP": "https://cloud.google.com/docs/",
+    "Azure": "https://learn.microsoft.com/en-us/azure/",
+    "Stripe": "https://stripe.com/docs/",
+    "PostgreSQL": "https://www.postgresql.org/docs/",
+    "MongoDB": "https://www.mongodb.com/docs/",
+    "Redis": "https://redis.io/docs/",
+    "GraphQL": "https://graphql.org/learn/",
+    "REST": "https://restfulapi.net/",
+    "API": "https://www.redhat.com/en/topics/api/what-is-a-rest-api",
+    "JWT": "https://jwt.io/introduction",
+    "OAuth": "https://oauth.net/2/",
+    "WebSocket": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API",
+    "Git": "https://git-scm.com/doc",
+    "GitHub": "https://docs.github.com/",
+    "CI/CD": "https://about.gitlab.com/topics/ci-cd/",
+    "Machine Learning": "https://www.ibm.com/topics/machine-learning",
+    "Neural Network": "https://www.ibm.com/topics/neural-networks",
+    "LLM": "https://en.wikipedia.org/wiki/Large_language_model",
+    "RAG": "https://python.langchain.com/docs/concepts/#retrieval",
+    "Vector Database": "https://python.langchain.com/docs/concepts/#vector-stores",
+    "Embedding": "https://platform.openai.com/docs/embeddings",
 }
 # ── Lemon Squeezy config ──────────────────────────────────────────────────────
 # Lemon Squeezy is a Merchant of Record — they handle EU VAT, invoicing, taxes.
@@ -164,20 +213,43 @@ def fetch_video_title(video_id: str) -> str:
 
 
 def extract_transcript(video_id: str) -> str:
-    try:
-        api = YouTubeTranscriptApi()
-        transcript_list = api.list(video_id)
+    last_error = None
+    
+    # Try up to 3 different proxies
+    for attempt in range(min(3, len(PROXY_LIST) if PROXY_LIST else 1)):
+        ydl_opts = {
+            'skipdownload': True,
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+            'writesubtitles': True,
+            'subtitleslangs': ['en'],
+            'socket_timeout': 10,
+        }
+        
+        proxy = get_next_proxy() if PROXY_LIST else None
+        if proxy:
+            ydl_opts['proxy'] = proxy
+        
         try:
-            transcript = transcript_list.find_transcript(['en'])
-        except Exception:
-            transcripts = list(transcript_list)
-            if not transcripts:
-                raise Exception("No transcripts available")
-            transcript = transcripts[0]
-        transcript_data = transcript.fetch()
-        return " ".join(segment.text for segment in transcript_data)
-    except Exception as e:
-        raise Exception(f"Could not get transcript: {str(e)}")
+            with ytdl.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                
+                subtitles = info.get('subtitles', {}) or info.get('automatic_captions', {})
+                
+                if 'en' in subtitles:
+                    sub_data = subtitles['en']
+                    if isinstance(sub_data, list) and len(sub_data) > 0:
+                        sub_data = sub_data[0]
+                        if 'data' in sub_data:
+                            return sub_data['data']
+                
+                raise Exception("No English subtitles available for this video")
+        except Exception as e:
+            last_error = e
+            continue
+    
+    raise Exception(f"Could not get transcript after {attempt+1} attempts: {last_error}")
         
 import concurrent.futures
 
@@ -509,7 +581,14 @@ def _ls_request(method: str, path: str, body: dict = None):
         )
 
 def enrich_concept(concept_name: str) -> str:
-    # No automatic search – rely on AI's provided URL
+    if not concept_name:
+        return ""
+    name_lower = concept_name.strip()
+    if name_lower in KNOWN_DOCS:
+        return KNOWN_DOCS[name_lower]
+    for key in KNOWN_DOCS:
+        if key.lower() == name_lower.lower():
+            return KNOWN_DOCS[key]
     return ""
 
 @app.post("/payments/create-checkout")
