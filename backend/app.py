@@ -17,6 +17,11 @@ try:
 except ImportError:
     raise Exception("yt-dlp not installed. Run: pip install yt-dlp")
 
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+except ImportError:
+    pass
+
 load_dotenv()
 
 from database import (
@@ -213,6 +218,13 @@ def fetch_video_title(video_id: str) -> str:
 
 
 def extract_transcript(video_id: str) -> str:
+    if 'YouTubeTranscriptApi' in globals():
+        try:
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+            return ' '.join([item['text'] for item in transcript])
+        except Exception as e:
+            pass
+    
     last_error = None
     
     # Try up to 3 different proxies
@@ -225,7 +237,6 @@ def extract_transcript(video_id: str) -> str:
             'writesubtitles': True,
             'subtitleslangs': ['en'],
             'socket_timeout': 10,
-            'cookiesfrombrowser': ('firefox',),
         }
         
         proxy = get_next_proxy() if PROXY_LIST else None
