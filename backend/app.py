@@ -232,7 +232,7 @@ def extract_transcript(video_id: str) -> str:
             ydl_opts['proxy'] = proxy
         
         try:
-            with ytdl.YoutubeDL(ydl_opts) as ydl:
+            with ytdl(ydl_opts) as ydl:
                 info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
                 
                 subtitles = info.get('subtitles', {}) or info.get('automatic_captions', {})
