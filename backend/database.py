@@ -68,18 +68,26 @@ def _hash_password(password: str, salt: str) -> str:
 
 
 def create_user(email: str, password: str) -> dict | None:
-    """Returns user dict or None if email already taken."""
+    """Returns user dict or None if email already taken or soft-deleted."""
+    email_lower = email.lower().strip()
     salt = secrets.token_hex(16)
     pw_hash = _hash_password(password, salt)
-    try:
-        with get_conn() as conn:
+    with get_conn() as conn:
+        # Check if email exists AND is active
+        existing = conn.execute(
+            "SELECT id FROM users WHERE email = ? AND is_active = 1",
+            (email_lower,)
+        ).fetchone()
+        if existing:
+            return None  # Email already registered and active
+        try:
             conn.execute(
                 "INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
-                (email.lower().strip(), pw_hash, salt)
+                (email_lower, pw_hash, salt)
             )
-        return get_user_by_email(email)
-    except sqlite3.IntegrityError:
-        return None
+        except sqlite3.IntegrityError:
+            return None
+    return get_user_by_email(email)
 
 
 def verify_user(email: str, password: str) -> dict | None:
