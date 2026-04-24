@@ -287,7 +287,7 @@ class TranscriptResponse(BaseModel):
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
 
-async async def get_current_user(authorization: str = Header(default=None)):
+async def get_current_user(authorization: str = Header(default=None)):
     """Extract Bearer token and return user, or raise 401."""
     if not authorization or not authorization.startswith("Bearer "):
         return None
@@ -295,7 +295,7 @@ async async def get_current_user(authorization: str = Header(default=None)):
     return await get_user_from_token(token)
 
 
-async async def require_auth(authorization: str = Header(default=None)):
+async def require_auth(authorization: str = Header(default=None)):
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
