@@ -23,12 +23,15 @@ except ImportError:
     pass
 
 load_dotenv()
+import os
+if not os.environ.get('DATABASE_URL'):
+    raise RuntimeError('DATABASE_URL environment variable not set')
 
 from database import (
     create_user, verify_user, create_session, get_user_from_token,
     delete_session, can_use, increment_usage, get_daily_usage,
     upgrade_to_pro, downgrade_to_free, FREE_DAILY_LIMIT, get_user_by_id,
-    get_conn, get_user_by_email, create_password_reset_token,
+    get_user_by_email, create_password_reset_token,
     get_valid_password_reset_user_id, delete_password_reset_token,
     update_user_password,
 )
@@ -36,7 +39,15 @@ from email_utils import (
     send_welcome_email, send_password_reset_email, send_password_changed_email,
 )
 
-app = FastAPI(title="TubeSum API")
+from contextlib import asynccontextmanager
+from database import init_db as _init_db
+
+@asynccontextmanager
+async def lifespan(app):
+    await _init_db()
+    yield
+
+app = FastAPI(title="TubeSum API", lifespan=lifespan)
 
 PRODUCTION_ORIGINS = [
     "https://tubesum.com",
@@ -276,15 +287,15 @@ class TranscriptResponse(BaseModel):
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
 
-def get_current_user(authorization: str = Header(default=None)):
+async async def get_current_user(authorization: str = Header(default=None)):
     """Extract Bearer token and return user, or raise 401."""
     if not authorization or not authorization.startswith("Bearer "):
         return None
     token = authorization[7:]
-    return get_user_from_token(token)
+    return await get_user_from_token(token)
 
 
-def require_auth(authorization: str = Header(default=None)):
+async async def require_auth(authorization: str = Header(default=None)):
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -648,10 +659,10 @@ async def root():
 async def register(req: RegisterRequest):   # ← remove BackgroundTasks
     if len(req.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    user = create_user(req.email, req.password)
+    user = await create_user(req.email, req.password)
     if not user:
         raise HTTPException(status_code=409, detail="Email already registered")
-    token = create_session(user["id"])
+    token = await create_session(user["id"])
 
     username = user["email"].split("@", 1)[0]
     send_welcome_email(user_email=user["email"], username=username)   # ← direct call
@@ -666,7 +677,7 @@ async def login(req: LoginRequest):
     user = verify_user(req.email, req.password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    token = create_session(user["id"])
+    token = await create_session(user["id"])
     return {
         "token": token,
         "user": {"email": user["email"], "tier": user["tier"]}
@@ -676,18 +687,18 @@ async def login(req: LoginRequest):
 @app.post("/auth/logout")
 async def logout(authorization: str = Header(default=None)):
     if authorization and authorization.startswith("Bearer "):
-        delete_session(authorization[7:])
+        await delete_session(authorization[7:])
     return {"message": "Logged out"}
 
 
 @app.post("/auth/request-password-reset")
 async def request_password_reset(req: PasswordResetRequest):
     print(f"🔵 PASSWORD RESET REQUEST for {req.email}", flush=True)
-    user = get_user_by_email(req.email)
+    user = await get_user_by_email(req.email)
     if user:
         print(f"🔵 User found: {user['email']}", flush=True)
         token = secrets.token_urlsafe(32)
-        create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
+        await create_password_reset_token(user_id=user["id"], token=token, ttl_seconds=3600)
         reset_url = f"{APP_DOMAIN}/reset-password?token={token}"
         print(f"🔵 Reset URL: {reset_url}", flush=True)
         print(f"🔵 Calling send_password_reset_email...", flush=True)
@@ -702,14 +713,14 @@ async def reset_password(req: PasswordResetConfirm):
     if len(req.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
 
-    user_id = get_valid_password_reset_user_id(req.token)
+    user_id = await get_valid_password_reset_user_id(req.token)
     if not user_id:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
 
-    update_user_password(user_id, req.new_password)
-    delete_password_reset_token(req.token)
+    await update_user_password(user_id, req.new_password)
+    await delete_password_reset_token(req.token)
 
-    user = get_user_by_id(user_id)
+    user = await get_user_by_id(user_id)
     if user:
         from datetime import datetime as _dt
         datetime_str = _dt.utcnow().strftime("%d %b %Y at %H:%M UTC")
@@ -723,7 +734,7 @@ async def me(authorization: str = Header(default=None)):
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    used_today = get_daily_usage(user["id"])
+    used_today = await get_daily_usage(user["id"])
     return {
         "email": user["email"],
         "tier": user["tier"],
@@ -868,7 +879,7 @@ async def ls_webhook(request: Request):
         if user_id:
             sub_id = str(event["data"].get("id", ""))
             customer_id = str(obj.get("customer_id", ""))
-            upgrade_to_pro(
+            await upgrade_to_pro(
                 user_id=int(user_id),
                 stripe_customer_id=customer_id,      # reusing field for LS customer ID
                 stripe_subscription_id=sub_id,       # reusing field for LS order/sub ID
@@ -878,7 +889,7 @@ async def ls_webhook(request: Request):
                         "subscription_paused", "subscription_payment_failed"):
         sub_id = str(event["data"].get("id", ""))
         if sub_id:
-            downgrade_to_free(sub_id)
+            await downgrade_to_free(sub_id)
 
     return {"status": "ok"}
 
@@ -910,7 +921,7 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
         print(f"🔴 No authenticated user", flush=True)
         raise HTTPException(status_code=401, detail="Please create a free account...")
     print(f"🔵 User: {user['email']}, Tier: {user['tier']}", flush=True)
-    allowed, reason = can_use(user)
+    allowed, reason = await can_use(user)
     if not allowed:
         print(f"🔴 Usage limit reached: {reason}", flush=True)
         raise HTTPException(status_code=429, detail=reason)
@@ -947,7 +958,7 @@ async def get_transcript(request: VideoRequest, authorization: str = Header(defa
                 print(f"Summarization error ({request.provider}): {e}")
 
         # Count the usage only after successful processing
-        increment_usage(user["id"])
+        await increment_usage(user["id"])
 
         return TranscriptResponse(
             transcript=full_transcript,
