@@ -1,62 +1,69 @@
 """
-SQLite user database — handles auth, usage tracking, and subscription tiers.
-Uses only stdlib + existing deps (no new ORM needed for this scale).
+PostgreSQL user database — handles auth, usage tracking, and subscription tiers.
+Rewritten from SQLite to asyncpg for Railway PostgreSQL.
 """
-import sqlite3
+import asyncpg
 import hashlib
 import secrets
 import os
-from datetime import datetime, date
-from pathlib import Path
-
-DB_PATH = Path(__file__).parent / "users.db"
+from datetime import datetime, date, timedelta
 
 # ── Free tier limits ───────────────────────────────────────────────────────────
 FREE_DAILY_LIMIT = 3   # summaries per day for free users
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+# ── Connection pool ────────────────────────────────────────────────────────────
+_pool: asyncpg.Pool = None
+
+async def get_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None:
+        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+    return _pool
+
+async def get_conn():
+    pool = await get_pool()
+    return pool
 
 
-def init_db():
-    """Create tables if they don't exist."""
-    with get_conn() as conn:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            email         TEXT    UNIQUE NOT NULL,
-            password_hash TEXT    NOT NULL,
-            salt          TEXT    NOT NULL,
-            tier          TEXT    NOT NULL DEFAULT 'free',   -- 'free' | 'pro'
-            stripe_customer_id    TEXT,
+async def init_db():
+    """Create tables if they don't exist. Called on startup."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+        CREATE TABLE IF NOT EXISTS tubesum_users (
+            id                     SERIAL PRIMARY KEY,
+            email                  TEXT    UNIQUE NOT NULL,
+            password_hash          TEXT    NOT NULL,
+            salt                   TEXT    NOT NULL,
+            tier                   TEXT    NOT NULL DEFAULT 'free',
+            stripe_customer_id     TEXT,
             stripe_subscription_id TEXT,
-            created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
-            is_active     INTEGER NOT NULL DEFAULT 1
+            created_at             TIMESTAMP NOT NULL DEFAULT NOW(),
+            is_active              BOOLEAN NOT NULL DEFAULT TRUE
         );
 
-        CREATE TABLE IF NOT EXISTS sessions (
+        CREATE TABLE IF NOT EXISTS tubesum_sessions (
             token      TEXT PRIMARY KEY,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-            expires_at TEXT    NOT NULL
+            user_id    INTEGER NOT NULL REFERENCES tubesum_users(id) ON DELETE CASCADE,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            expires_at TIMESTAMP NOT NULL
         );
 
-        CREATE TABLE IF NOT EXISTS usage (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            used_on    TEXT    NOT NULL,   -- date string YYYY-MM-DD
+        CREATE TABLE IF NOT EXISTS tubesum_usage (
+            id         SERIAL PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES tubesum_users(id) ON DELETE CASCADE,
+            used_on    DATE    NOT NULL,
             count      INTEGER NOT NULL DEFAULT 0,
             UNIQUE(user_id, used_on)
         );
 
-        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        CREATE TABLE IF NOT EXISTS tubesum_password_reset_tokens (
             token      TEXT PRIMARY KEY,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-            expires_at TEXT    NOT NULL
+            user_id    INTEGER NOT NULL REFERENCES tubesum_users(id) ON DELETE CASCADE,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            expires_at TIMESTAMP NOT NULL
         );
         """)
 
@@ -67,32 +74,34 @@ def _hash_password(password: str, salt: str) -> str:
     return hashlib.sha256((salt + password).encode()).hexdigest()
 
 
-def create_user(email: str, password: str) -> dict | None:
-    """Returns user dict or None if email already taken or soft-deleted."""
+# ── User management ────────────────────────────────────────────────────────────
+
+async def create_user(email: str, password: str) -> dict | None:
+    """Returns user dict or None if email already taken."""
     email_lower = email.lower().strip()
     salt = secrets.token_hex(16)
     pw_hash = _hash_password(password, salt)
-    with get_conn() as conn:
-        # Check if email exists AND is active
-        existing = conn.execute(
-            "SELECT id FROM users WHERE email = ? AND is_active = 1",
-            (email_lower,)
-        ).fetchone()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        existing = await conn.fetchrow(
+            "SELECT id FROM tubesum_users WHERE email = $1 AND is_active = TRUE",
+            email_lower
+        )
         if existing:
-            return None  # Email already registered and active
-        try:
-            conn.execute(
-                "INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
-                (email_lower, pw_hash, salt)
-            )
-        except sqlite3.IntegrityError:
             return None
-    return get_user_by_email(email)
+        try:
+            await conn.execute(
+                "INSERT INTO tubesum_users (email, password_hash, salt) VALUES ($1, $2, $3)",
+                email_lower, pw_hash, salt
+            )
+        except asyncpg.UniqueViolationError:
+            return None
+    return await get_user_by_email(email)
 
 
-def verify_user(email: str, password: str) -> dict | None:
+async def verify_user(email: str, password: str) -> dict | None:
     """Returns user dict if credentials valid, else None."""
-    user = get_user_by_email(email)
+    user = await get_user_by_email(email)
     if not user:
         return None
     expected = _hash_password(password, user["salt"])
@@ -101,89 +110,91 @@ def verify_user(email: str, password: str) -> dict | None:
     return None
 
 
-def get_user_by_email(email: str) -> dict | None:
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM users WHERE email = ? AND is_active = 1",
-            (email.lower().strip(),)
-        ).fetchone()
+async def get_user_by_email(email: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM tubesum_users WHERE email = $1 AND is_active = TRUE",
+            email.lower().strip()
+        )
     return dict(row) if row else None
 
 
-def get_user_by_id(user_id: int) -> dict | None:
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM users WHERE id = ? AND is_active = 1", (user_id,)
-        ).fetchone()
+async def get_user_by_id(user_id: int) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM tubesum_users WHERE id = $1 AND is_active = TRUE",
+            user_id
+        )
     return dict(row) if row else None
 
 
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
-def create_session(user_id: int) -> str:
+async def create_session(user_id: int) -> str:
     """Creates a session token valid for 30 days."""
     token = secrets.token_urlsafe(32)
-    expires = datetime.utcnow().replace(hour=0, minute=0, second=0).strftime("%Y-%m-%d")
-    # Simple: store token with 30-day rolling expiry
-    from datetime import timedelta
-    expires_at = (datetime.utcnow() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
-            (token, user_id, expires_at)
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO tubesum_sessions (token, user_id, expires_at) VALUES ($1, $2, $3)",
+            token, user_id, expires_at
         )
     return token
 
 
-def get_user_from_token(token: str) -> dict | None:
+async def get_user_from_token(token: str) -> dict | None:
     """Returns user dict if token is valid and not expired."""
     if not token:
         return None
-    with get_conn() as conn:
-        row = conn.execute("""
-            SELECT u.* FROM users u
-            JOIN sessions s ON s.user_id = u.id
-            WHERE s.token = ?
-              AND s.expires_at > datetime('now')
-              AND u.is_active = 1
-        """, (token,)).fetchone()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT u.* FROM tubesum_users u
+            JOIN tubesum_sessions s ON s.user_id = u.id
+            WHERE s.token = $1
+              AND s.expires_at > NOW()
+              AND u.is_active = TRUE
+        """, token)
     return dict(row) if row else None
 
 
-def delete_session(token: str):
-    with get_conn() as conn:
-        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+async def delete_session(token: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM tubesum_sessions WHERE token = $1", token)
 
 
 # ── Usage tracking ────────────────────────────────────────────────────────────
 
-def get_daily_usage(user_id: int) -> int:
-    today = date.today().isoformat()
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT count FROM usage WHERE user_id = ? AND used_on = ?",
-            (user_id, today)
-        ).fetchone()
+async def get_daily_usage(user_id: int) -> int:
+    today = date.today()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT count FROM tubesum_usage WHERE user_id = $1 AND used_on = $2",
+            user_id, today
+        )
     return row["count"] if row else 0
 
 
-def increment_usage(user_id: int):
-    today = date.today().isoformat()
-    with get_conn() as conn:
-        conn.execute("""
-            INSERT INTO usage (user_id, used_on, count) VALUES (?, ?, 1)
-            ON CONFLICT(user_id, used_on) DO UPDATE SET count = count + 1
-        """, (user_id, today))
+async def increment_usage(user_id: int):
+    today = date.today()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO tubesum_usage (user_id, used_on, count) VALUES ($1, $2, 1)
+            ON CONFLICT (user_id, used_on) DO UPDATE SET count = tubesum_usage.count + 1
+        """, user_id, today)
 
 
-def can_use(user: dict) -> tuple[bool, str]:
-    """
-    Returns (allowed: bool, reason: str).
-    Pro users always allowed. Free users limited to FREE_DAILY_LIMIT/day.
-    """
+async def can_use(user: dict) -> tuple[bool, str]:
+    """Returns (allowed, reason). Pro users always allowed."""
     if user["tier"] == "pro":
         return True, "ok"
-    used = get_daily_usage(user["id"])
+    used = await get_daily_usage(user["id"])
     if used >= FREE_DAILY_LIMIT:
         return False, f"Daily limit reached ({FREE_DAILY_LIMIT} summaries/day on free plan)"
     return True, "ok"
@@ -191,68 +202,65 @@ def can_use(user: dict) -> tuple[bool, str]:
 
 # ── Stripe helpers ────────────────────────────────────────────────────────────
 
-def upgrade_to_pro(user_id: int, stripe_customer_id: str, stripe_subscription_id: str):
-    with get_conn() as conn:
-        conn.execute("""
-            UPDATE users
+async def upgrade_to_pro(user_id: int, stripe_customer_id: str, stripe_subscription_id: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE tubesum_users
             SET tier = 'pro',
-                stripe_customer_id = ?,
-                stripe_subscription_id = ?
-            WHERE id = ?
-        """, (stripe_customer_id, stripe_subscription_id, user_id))
+                stripe_customer_id = $1,
+                stripe_subscription_id = $2
+            WHERE id = $3
+        """, stripe_customer_id, stripe_subscription_id, user_id)
 
 
-def downgrade_to_free(stripe_subscription_id: str):
-    with get_conn() as conn:
-        conn.execute("""
-            UPDATE users SET tier = 'free'
-            WHERE stripe_subscription_id = ?
-        """, (stripe_subscription_id,))
+async def downgrade_to_free(stripe_subscription_id: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE tubesum_users SET tier = 'free'
+            WHERE stripe_subscription_id = $1
+        """, stripe_subscription_id)
 
 
 # ── Password reset tokens ─────────────────────────────────────────────────────
 
-def create_password_reset_token(user_id: int, token: str, ttl_seconds: int = 3600):
-    """Store a password reset token with the given TTL (default 1 hour)."""
-    from datetime import timedelta
-    expires_at = (datetime.utcnow() + timedelta(seconds=ttl_seconds)).strftime("%Y-%m-%d %H:%M:%S")
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
-            (token, user_id, expires_at),
+async def create_password_reset_token(user_id: int, token: str, ttl_seconds: int = 3600):
+    expires_at = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO tubesum_password_reset_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)",
+            token, user_id, expires_at
         )
 
 
-def get_valid_password_reset_user_id(token: str) -> int | None:
-    """Return the user_id for a valid (non-expired) token, else None."""
+async def get_valid_password_reset_user_id(token: str) -> int | None:
     if not token:
         return None
-    with get_conn() as conn:
-        row = conn.execute(
-            """
-            SELECT user_id FROM password_reset_tokens
-            WHERE token = ? AND expires_at > datetime('now')
-            """,
-            (token,),
-        ).fetchone()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT user_id FROM tubesum_password_reset_tokens
+            WHERE token = $1 AND expires_at > NOW()
+        """, token)
     return row["user_id"] if row else None
 
 
-def delete_password_reset_token(token: str):
-    with get_conn() as conn:
-        conn.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
-
-
-def update_user_password(user_id: int, new_password: str):
-    """Update password hash (and salt) for a user."""
-    salt = secrets.token_hex(16)
-    pw_hash = _hash_password(new_password, salt)
-    with get_conn() as conn:
-        conn.execute(
-            "UPDATE users SET password_hash = ?, salt = ? WHERE id = ?",
-            (pw_hash, salt, user_id),
+async def delete_password_reset_token(token: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM tubesum_password_reset_tokens WHERE token = $1", token
         )
 
 
-# ── Init on import ────────────────────────────────────────────────────────────
-init_db()
+async def update_user_password(user_id: int, new_password: str):
+    salt = secrets.token_hex(16)
+    pw_hash = _hash_password(new_password, salt)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE tubesum_users SET password_hash = $1, salt = $2 WHERE id = $3",
+            pw_hash, salt, user_id
+        )
